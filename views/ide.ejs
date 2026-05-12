@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= problem.title %> — Newborn Swing</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; background: #1e1e1e; color: #d4d4d4; overflow: hidden; }
+
+    header {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.5rem 1rem; background: #252526;
+      border-bottom: 1px solid #3e3e3e; flex-shrink: 0;
+    }
+    header h1 { font-size: 0.95rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
+    #editor-container { flex: 1; }
+
+    .sidebar {
+      width: 380px; min-width: 280px; display: flex; flex-direction: column;
+      border-left: 1px solid #3e3e3e; overflow: hidden;
+    }
+
+    .problem-desc {
+      flex: 1; padding: 1rem; overflow-y: auto; background: #252526;
+      border-bottom: 1px solid #3e3e3e;
+    }
+    .problem-desc h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #858585; margin-bottom: 0.75rem; }
+    .problem-desc pre { white-space: pre-wrap; font-size: 0.875rem; line-height: 1.5; font-family: inherit; }
+
+    .stdin-panel { padding: 0.5rem 0.75rem; background: #2d2d2d; border-bottom: 1px solid #3e3e3e; }
+    .stdin-panel label { font-size: 0.75rem; color: #858585; display: block; margin-bottom: 0.25rem; }
+    #stdin { width: 100%; height: 48px; resize: none; background: #1e1e1e; color: #d4d4d4; border: 1px solid #3e3e3e; padding: 0.3rem 0.5rem; font-family: 'Courier New', monospace; font-size: 0.8rem; }
+    #stdin:focus { outline: none; border-color: #0e639c; }
+
+    .output-panel { height: 200px; display: flex; flex-direction: column; flex-shrink: 0; }
+    .output-label { padding: 0.25rem 0.75rem; font-size: 0.75rem; background: #2d2d2d; color: #858585; display: flex; justify-content: space-between; }
+    #output { flex: 1; padding: 0.6rem 0.75rem; font-family: 'Courier New', monospace; font-size: 0.8rem; overflow-y: auto; white-space: pre-wrap; background: #1e1e1e; color: #d4d4d4; }
+    #output.ok { color: #4ec9b0; }
+    #output.err { color: #f44747; }
+
+    .btn { padding: 0.35rem 0.9rem; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85rem; }
+    .btn-back { background: transparent; color: #9e9e9e; border: 1px solid #3e3e3e; }
+    .btn-back:hover { background: #3e3e3e; color: #d4d4d4; }
+    .btn-run { background: #0e639c; color: #fff; }
+    .btn-run:hover:not(:disabled) { background: #1177bb; }
+    .btn-run:disabled { opacity: 0.5; cursor: default; }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="btn btn-back" href="/dashboard">← Back</a>
+    <h1><%= problem.title %></h1>
+    <button class="btn btn-run" id="run-btn">▶ Run</button>
+  </header>
+
+  <div class="main">
+    <div id="editor-container"></div>
+    <div class="sidebar">
+      <div class="problem-desc">
+        <h2>Problem</h2>
+        <pre><%= problem.description %></pre>
+      </div>
+      <div class="stdin-panel">
+        <label for="stdin">Standard Input (stdin)</label>
+        <textarea id="stdin" placeholder="Optional input for your program..."></textarea>
+      </div>
+      <div class="output-panel">
+        <div class="output-label">
+          <span>Output</span>
+          <span id="exec-info"></span>
+        </div>
+        <div id="output">Click ▶ Run to execute your code.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <script>
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      const editor = monaco.editor.create(document.getElementById('editor-container'), {
+        value: '# Write your Python code here\n',
+        language: 'python',
+        theme: 'vs-dark',
+        fontSize: 14,
+        minimap: { enabled: false },
+        automaticLayout: true,
+        scrollBeyondLastLine: false,
+      });
+
+      document.getElementById('run-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('run-btn');
+        const output = document.getElementById('output');
+        const execInfo = document.getElementById('exec-info');
+
+        btn.disabled = true;
+        btn.textContent = 'Running…';
+        output.textContent = '';
+        output.className = '';
+        execInfo.textContent = '';
+
+        try {
+          const res = await fetch('/api/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: editor.getValue(),
+              stdin: document.getElementById('stdin').value,
+            }),
+          });
+          const data = await res.json();
+
+          if (data.error) {
+            output.textContent = data.error;
+            output.className = 'err';
+          } else if (data.compile_output) {
+            output.textContent = 'Compilation Error:\n' + data.compile_output;
+            output.className = 'err';
+          } else if (data.stderr) {
+            output.textContent = data.stderr;
+            output.className = 'err';
+          } else {
+            output.textContent = data.stdout || '(no output)';
+            output.className = data.status_id === 3 ? 'ok' : 'err';
+          }
+
+          if (data.time) execInfo.textContent = `${data.time}s`;
+        } catch (err) {
+          output.textContent = 'Request failed: ' + err.message;
+          output.className = 'err';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '▶ Run';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

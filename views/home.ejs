@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newborn Swing</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 80px auto; text-align: center; }
+    h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #666; margin-bottom: 2rem; }
+    .btn-google {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: #4285F4;
+      color: #fff;
+      border-radius: 4px;
+      text-decoration: none;
+      font-size: 1rem;
+    }
+    .btn-google:hover { background: #3367d6; }
+    .error { color: #c0392b; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Newborn Swing</h1>
+  <p class="subtitle">Python coding platform</p>
+  <a class="btn-google" href="/auth/google">Sign in with Google</a>
+  <% if (error) { %>
+    <p class="error">Authentication failed. Please try again.</p>
+  <% } %>
+</body>
+</html>

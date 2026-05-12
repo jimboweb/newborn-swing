@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard — Newborn Swing</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 1rem; }
+    nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    h1 { font-size: 1.5rem; }
+    .badge { background: #27ae60; color: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Newborn Swing <span class="badge">Teacher</span></h1>
+    <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+  <h2>Teacher Dashboard</h2>
+  <p>Problem management and submission review coming in later phases.</p>
+</body>
+</html>

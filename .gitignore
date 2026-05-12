@@ -3,6 +3,7 @@ node_modules/
 
 # Environment variables
 .env
+.env.example
 .env.local
 .env.development
 .env.production
@@ -16,7 +17,6 @@ logs/
 npm-debug.log*
 
 # Database
-*.sql
 *.sqlite
 *.db
 
@@ -38,6 +38,9 @@ public/bundle.css
 
 # Coverage
 coverage/
+
+# Python virtualenv
+.venv/
 
 # Misc
 *.pem
