@@ -21,6 +21,11 @@
     .problem-title { font-weight: 600; margin-bottom: 0.25rem; }
     .problem-desc { font-size: 0.85rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .empty { color: #888; font-style: italic; }
+    .problem-meta { display: flex; justify-content: space-between; align-items: flex-start; }
+    .badge { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 10px; white-space: nowrap; margin-left: 0.75rem; flex-shrink: 0; }
+    .badge-pass { background: #d4edda; color: #155724; }
+    .badge-fail { background: #f8d7da; color: #721c24; }
+    .badge-none { background: #e9ecef; color: #6c757d; }
   </style>
 </head>
 <body>
@@ -36,7 +41,17 @@
       <% problems.forEach(p => { %>
         <li>
           <a href="/problems/<%= p.id %>">
-            <div class="problem-title"><%= p.title %></div>
+            <div class="problem-meta">
+              <div class="problem-title"><%= p.title %></div>
+              <% if (p.total_count != null) { %>
+                <% const allPass = p.passed_count === p.total_count; %>
+                <span class="badge <%= allPass ? 'badge-pass' : 'badge-fail' %>">
+                  <%= p.passed_count %>/<%= p.total_count %> passed
+                </span>
+              <% } else { %>
+                <span class="badge badge-none">Not attempted</span>
+              <% } %>
+            </div>
             <div class="problem-desc"><%= p.description %></div>
           </a>
         </li>

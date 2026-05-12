@@ -22,18 +22,18 @@ passport.use(new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const email = profile.emails[0].value;
-    const existing = await pool.query(
-      'SELECT * FROM users WHERE google_id = $1',
-      [profile.id]
-    );
 
-    if (existing.rows.length > 0) {
-      return done(null, existing.rows[0]);
-    }
+    // Returning user — fast path
+    const byGoogleId = await pool.query('SELECT * FROM users WHERE google_id = $1', [profile.id]);
+    if (byGoogleId.rows.length > 0) return done(null, byGoogleId.rows[0]);
 
+    // Pre-created account (placeholder google_id) or brand-new user
     const result = await pool.query(
-      'INSERT INTO users (google_id, email, name, role) VALUES ($1, $2, $3, $4) RETURNING *',
-      [profile.id, email, profile.displayName, 'student']
+      `INSERT INTO users (google_id, email, name, role)
+       VALUES ($1, $2, $3, 'student')
+       ON CONFLICT (email) DO UPDATE SET google_id = EXCLUDED.google_id, name = EXCLUDED.name
+       RETURNING *`,
+      [profile.id, email, profile.displayName]
     );
     done(null, result.rows[0]);
   } catch (err) {

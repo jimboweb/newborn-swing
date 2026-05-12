@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
 
 const JUDGE0_HOST = 'judge0-ce.p.rapidapi.com';
@@ -30,6 +31,44 @@ async function judge0Run(code, stdin = '') {
   }
   throw new Error('Execution timed out after 10 seconds');
 }
+
+router.post('/submit', requireAuth, async (req, res) => {
+  const { code, problem_id } = req.body;
+  if (!code || !code.trim()) return res.status(400).json({ error: 'No code provided' });
+
+  try {
+    const tcResult = await pool.query(
+      'SELECT * FROM test_cases WHERE problem_id = $1 ORDER BY id',
+      [problem_id]
+    );
+    const testCases = tcResult.rows;
+    if (!testCases.length) return res.status(400).json({ error: 'No test cases for this problem' });
+
+    const results = await Promise.all(testCases.map(async (tc) => {
+      const run = await judge0Run(code, tc.input);
+      const actual = (run.stdout || '').trimEnd();
+      const expected = tc.expected_output.trimEnd();
+      return {
+        passed: actual === expected,
+        is_hidden: tc.is_hidden,
+        expected: tc.is_hidden ? null : expected,
+        actual: tc.is_hidden ? null : actual,
+        status: run.status?.description || '',
+      };
+    }));
+
+    const passed = results.filter(r => r.passed).length;
+    await pool.query(
+      `INSERT INTO submissions (problem_id, student_id, code, passed_count, total_count)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [problem_id, req.user.id, code, passed, testCases.length]
+    );
+
+    res.json({ results, passed, total: testCases.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.post('/run', requireAuth, async (req, res) => {
   const { code, stdin = '' } = req.body;

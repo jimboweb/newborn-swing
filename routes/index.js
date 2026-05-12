@@ -23,10 +23,17 @@ router.get('/dashboard', requireAuth, async (req, res, next) => {
   }
   try {
     const result = await pool.query(
-      `SELECT p.id, p.title, p.description
+      `SELECT p.id, p.title, p.description,
+              s.passed_count, s.total_count
        FROM problems p
        JOIN assignments a ON a.problem_id = p.id
-       ORDER BY a.assigned_at DESC`
+       LEFT JOIN LATERAL (
+         SELECT passed_count, total_count FROM submissions
+         WHERE problem_id = p.id AND student_id = $1
+         ORDER BY created_at DESC LIMIT 1
+       ) s ON true
+       ORDER BY a.assigned_at DESC`,
+      [req.user.id]
     );
     res.render('student-dashboard', { problems: result.rows });
   } catch (err) {
