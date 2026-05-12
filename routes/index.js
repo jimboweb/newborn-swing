@@ -10,7 +10,16 @@ router.get('/', (req, res) => {
 
 router.get('/dashboard', requireAuth, async (req, res, next) => {
   if (req.user.role === 'teacher') {
-    return res.render('teacher-dashboard');
+    try {
+      const result = await pool.query(
+        `SELECT p.*, EXISTS(SELECT 1 FROM assignments a WHERE a.problem_id = p.id) AS assigned
+         FROM problems p WHERE p.created_by = $1 ORDER BY p.created_at DESC`,
+        [req.user.id]
+      );
+      return res.render('teacher-dashboard', { user: req.user, problems: result.rows });
+    } catch (err) {
+      return next(err);
+    }
   }
   try {
     const result = await pool.query(
