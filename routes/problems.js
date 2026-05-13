@@ -8,11 +8,11 @@ router.get('/new', requireTeacher, (req, res) => {
 });
 
 router.post('/', requireTeacher, async (req, res, next) => {
-  const { title, description, inputs, expected_outputs, is_hidden } = req.body;
+  const { title, description, starter_code, inputs, expected_outputs, is_hidden } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO problems (title, description, created_by) VALUES ($1, $2, $3) RETURNING *',
-      [title, description, req.user.id]
+      'INSERT INTO problems (title, description, starter_code, created_by) VALUES ($1, $2, $3, $4) RETURNING *',
+      [title, description, starter_code || '', req.user.id]
     );
     const problemId = result.rows[0].id;
 

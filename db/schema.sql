@@ -18,8 +18,9 @@ CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
 
 CREATE TABLE IF NOT EXISTS problems (
   id          SERIAL PRIMARY KEY,
-  title       TEXT NOT NULL,
-  description TEXT NOT NULL,
+  title        TEXT NOT NULL,
+  description  TEXT NOT NULL,
+  starter_code TEXT NOT NULL DEFAULT '',
   created_by  INTEGER REFERENCES users(id),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
