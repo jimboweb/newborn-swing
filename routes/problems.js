@@ -48,6 +48,24 @@ router.post('/:id/assign', requireTeacher, async (req, res, next) => {
   }
 });
 
+router.post('/:id/unassign', requireTeacher, async (req, res, next) => {
+  try {
+    await pool.query('DELETE FROM assignments WHERE problem_id = $1', [req.params.id]);
+    res.redirect('/dashboard');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/delete', requireTeacher, async (req, res, next) => {
+  try {
+    await pool.query('DELETE FROM problems WHERE id = $1 AND created_by = $2', [req.params.id, req.user.id]);
+    res.redirect('/dashboard');
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id/submissions', requireTeacher, async (req, res, next) => {
   try {
     const problemResult = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
