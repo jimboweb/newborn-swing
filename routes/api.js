@@ -2,34 +2,46 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const crypto = require('crypto');
 
-const JUDGE0_HOST = 'judge0-ce.p.rapidapi.com';
-const PYTHON3_ID = 71;
+const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
+const TIMEOUT_MS = 5000;
 
-async function judge0Run(code, stdin = '') {
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
-    'X-RapidAPI-Host': JUDGE0_HOST,
-  };
+function runPython(code, stdin = '') {
+  return new Promise((resolve, reject) => {
+    const file = path.join(os.tmpdir(), `ns_${crypto.randomBytes(8).toString('hex')}.py`);
+    fs.writeFileSync(file, code);
 
-  const createRes = await fetch(`https://${JUDGE0_HOST}/submissions?base64_encoded=false`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ language_id: PYTHON3_ID, source_code: code, stdin }),
+    const proc = spawn(PYTHON, [file], { cwd: os.tmpdir() });
+    let stdout = '', stderr = '';
+
+    const timer = setTimeout(() => {
+      proc.kill();
+      try { fs.unlinkSync(file); } catch {}
+      resolve({ stdout: '', stderr: 'Time limit exceeded (5s)', code: -1 });
+    }, TIMEOUT_MS);
+
+    proc.stdin.write(stdin || '');
+    proc.stdin.end();
+    proc.stdout.on('data', d => { stdout += d.toString(); });
+    proc.stderr.on('data', d => { stderr += d.toString(); });
+
+    proc.on('close', (exitCode) => {
+      clearTimeout(timer);
+      try { fs.unlinkSync(file); } catch {}
+      resolve({ stdout, stderr, code: exitCode });
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timer);
+      try { fs.unlinkSync(file); } catch {}
+      reject(err);
+    });
   });
-  const { token } = await createRes.json();
-
-  for (let i = 0; i < 10; i++) {
-    await new Promise(r => setTimeout(r, 1000));
-    const res = await fetch(
-      `https://${JUDGE0_HOST}/submissions/${token}?base64_encoded=false&fields=status,stdout,stderr,compile_output,time,memory`,
-      { headers }
-    );
-    const data = await res.json();
-    if (data.status.id >= 3) return data;
-  }
-  throw new Error('Execution timed out after 10 seconds');
 }
 
 router.post('/submit', requireAuth, async (req, res) => {
@@ -45,7 +57,7 @@ router.post('/submit', requireAuth, async (req, res) => {
     if (!testCases.length) return res.status(400).json({ error: 'No test cases for this problem' });
 
     const results = await Promise.all(testCases.map(async (tc) => {
-      const run = await judge0Run(code, tc.input);
+      const run = await runPython(code, tc.input);
       const actual = (run.stdout || '').trimEnd();
       const expected = tc.expected_output.trimEnd();
       return {
@@ -53,7 +65,7 @@ router.post('/submit', requireAuth, async (req, res) => {
         is_hidden: tc.is_hidden,
         expected: tc.is_hidden ? null : expected,
         actual: tc.is_hidden ? null : actual,
-        status: run.status?.description || '',
+        stderr: run.stderr || '',
       };
     }));
 
@@ -72,17 +84,14 @@ router.post('/submit', requireAuth, async (req, res) => {
 
 router.post('/run', requireAuth, async (req, res) => {
   const { code, stdin = '' } = req.body;
-  if (!code || !code.trim()) return res.json({ stdout: '(no code)', status_id: 3 });
+  if (!code || !code.trim()) return res.json({ stdout: '(no code)' });
   try {
-    const result = await judge0Run(code, stdin);
+    const run = await runPython(code, stdin);
     res.json({
-      stdout: result.stdout || '',
-      stderr: result.stderr || '',
-      compile_output: result.compile_output || '',
-      status_id: result.status.id,
-      status: result.status.description,
-      time: result.time,
-      memory: result.memory,
+      stdout: run.stdout || '',
+      stderr: run.stderr || '',
+      status: run.code === 0 ? 'Accepted' : 'Runtime Error',
+      status_id: run.code === 0 ? 3 : 11,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
