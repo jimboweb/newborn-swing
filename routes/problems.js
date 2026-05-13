@@ -66,6 +66,45 @@ router.post('/:id/delete', requireTeacher, async (req, res, next) => {
   }
 });
 
+router.get('/:id/edit', requireTeacher, async (req, res, next) => {
+  try {
+    const problem = await pool.query('SELECT * FROM problems WHERE id = $1 AND created_by = $2', [req.params.id, req.user.id]);
+    if (!problem.rows.length) return res.status(404).send('Problem not found');
+    const testCases = await pool.query('SELECT * FROM test_cases WHERE problem_id = $1 ORDER BY id', [req.params.id]);
+    res.render('problem-form', { user: req.user, problem: problem.rows[0], testCases: testCases.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/edit', requireTeacher, async (req, res, next) => {
+  const { title, description, starter_code, inputs, expected_outputs, is_hidden } = req.body;
+  try {
+    await pool.query(
+      'UPDATE problems SET title = $1, description = $2, starter_code = $3 WHERE id = $4 AND created_by = $5',
+      [title, description, starter_code || '', req.params.id, req.user.id]
+    );
+
+    await pool.query('DELETE FROM test_cases WHERE problem_id = $1', [req.params.id]);
+
+    const inputs_ = [].concat(inputs || []);
+    const outputs_ = [].concat(expected_outputs || []);
+    const hidden_ = [].concat(is_hidden || []);
+
+    for (let i = 0; i < inputs_.length; i++) {
+      if (outputs_[i] === undefined) continue;
+      await pool.query(
+        'INSERT INTO test_cases (problem_id, input, expected_output, is_hidden) VALUES ($1, $2, $3, $4)',
+        [req.params.id, inputs_[i], outputs_[i], hidden_[i] === 'on']
+      );
+    }
+
+    res.redirect('/dashboard');
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id/submissions', requireTeacher, async (req, res, next) => {
   try {
     const problemResult = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
