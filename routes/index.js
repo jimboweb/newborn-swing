@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireTeacher } = require('../middleware/auth');
 
 router.get('/', (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/dashboard');
@@ -36,6 +36,29 @@ router.get('/dashboard', requireAuth, async (req, res, next) => {
       [req.user.id]
     );
     res.render('student-dashboard', { problems: result.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/students', requireTeacher, async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.name, u.email, u.created_at,
+              COUNT(DISTINCT s.problem_id) AS problems_attempted,
+              COUNT(DISTINCT CASE WHEN s.passed_count = s.total_count THEN s.problem_id END) AS problems_passed
+       FROM users u
+       LEFT JOIN LATERAL (
+         SELECT DISTINCT ON (problem_id) problem_id, passed_count, total_count
+         FROM submissions
+         WHERE student_id = u.id
+         ORDER BY problem_id, created_at DESC
+       ) s ON true
+       WHERE u.role = 'student'
+       GROUP BY u.id
+       ORDER BY u.name`
+    );
+    res.render('students', { user: req.user, students: result.rows });
   } catch (err) {
     next(err);
   }

@@ -39,7 +39,10 @@
 
   <div class="top">
     <h2 style="margin:0">Problems</h2>
-    <a href="/problems/new" class="btn btn-primary">+ New Problem</a>
+    <div style="display:flex;gap:0.5rem">
+      <a href="/students" class="btn" style="background:#555;color:#fff">Students</a>
+      <a href="/problems/new" class="btn btn-primary">+ New Problem</a>
+    </div>
   </div>
 
   <% if (problems.length === 0) { %>
