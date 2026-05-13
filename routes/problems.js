@@ -48,6 +48,31 @@ router.post('/:id/assign', requireTeacher, async (req, res, next) => {
   }
 });
 
+router.get('/:id/submissions', requireTeacher, async (req, res, next) => {
+  try {
+    const problemResult = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
+    if (!problemResult.rows.length) return res.status(404).send('Problem not found');
+
+    const submissions = await pool.query(
+      `SELECT DISTINCT ON (s.student_id)
+              u.name, u.email, s.passed_count, s.total_count, s.created_at, s.code
+       FROM submissions s
+       JOIN users u ON u.id = s.student_id
+       WHERE s.problem_id = $1
+       ORDER BY s.student_id, s.created_at DESC`,
+      [req.params.id]
+    );
+
+    res.render('submissions', {
+      user: req.user,
+      problem: problemResult.rows[0],
+      submissions: submissions.rows,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
     const result = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
