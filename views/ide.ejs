@@ -179,10 +179,15 @@
             return;
           }
 
+          function esc(s) {
+            return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          }
+
           resultsEl.innerHTML = data.results.map((r, i) => {
             if (r.is_hidden) return `<div class="test-result hidden">Test ${i + 1}: hidden — ${r.passed ? 'Passed' : 'Failed'}</div>`;
             if (r.passed) return `<div class="test-result pass">Test ${i + 1}: Passed</div>`;
-            return `<div class="test-result fail">Test ${i + 1}: Failed\nExpected: ${r.expected}\nGot:      ${r.actual}</div>`;
+            if (r.stderr) return `<div class="test-result fail">Test ${i + 1}: Error\n${esc(r.stderr.trim())}</div>`;
+            return `<div class="test-result fail">Test ${i + 1}: Failed\nExpected: ${esc(r.expected)}\nGot:      ${esc(r.actual)}</div>`;
           }).join('');
 
           const allPass = data.passed === data.total;
