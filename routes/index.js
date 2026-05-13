@@ -12,8 +12,7 @@ router.get('/dashboard', requireAuth, async (req, res, next) => {
   if (req.user.role === 'teacher') {
     try {
       const result = await pool.query(
-        `SELECT p.*, EXISTS(SELECT 1 FROM assignments a WHERE a.problem_id = p.id) AS assigned
-         FROM problems p WHERE p.created_by = $1 ORDER BY p.created_at DESC`,
+        `SELECT p.* FROM problems p WHERE p.created_by = $1 ORDER BY p.created_at DESC`,
         [req.user.id]
       );
       return res.render('teacher-dashboard', { user: req.user, problems: result.rows });
@@ -23,7 +22,7 @@ router.get('/dashboard', requireAuth, async (req, res, next) => {
   }
   try {
     const result = await pool.query(
-      `SELECT p.id, p.title, p.description,
+      `SELECT DISTINCT ON (p.id) p.id, p.title, p.description,
               s.passed_count, s.total_count
        FROM problems p
        JOIN assignments a ON a.problem_id = p.id
@@ -32,7 +31,14 @@ router.get('/dashboard', requireAuth, async (req, res, next) => {
          WHERE problem_id = p.id AND student_id = $1
          ORDER BY created_at DESC LIMIT 1
        ) s ON true
-       ORDER BY a.assigned_at DESC`,
+       WHERE
+         (a.class_id IS NULL AND a.student_id IS NULL)
+         OR a.student_id = $1
+         OR EXISTS (
+           SELECT 1 FROM class_members cm
+           WHERE cm.class_id = a.class_id AND cm.student_id = $1
+         )
+       ORDER BY p.id, a.assigned_at DESC`,
       [req.user.id]
     );
     res.render('student-dashboard', { problems: result.rows });

@@ -17,12 +17,12 @@ CREATE TABLE IF NOT EXISTS session (
 CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
 
 CREATE TABLE IF NOT EXISTS problems (
-  id          SERIAL PRIMARY KEY,
+  id           SERIAL PRIMARY KEY,
   title        TEXT NOT NULL,
   description  TEXT NOT NULL,
   starter_code TEXT NOT NULL DEFAULT '',
-  created_by  INTEGER REFERENCES users(id),
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_by   INTEGER REFERENCES users(id),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS test_cases (
@@ -33,11 +33,26 @@ CREATE TABLE IF NOT EXISTS test_cases (
   is_hidden        BOOLEAN NOT NULL DEFAULT false
 );
 
+CREATE TABLE IF NOT EXISTS classes (
+  id         SERIAL PRIMARY KEY,
+  name       TEXT NOT NULL,
+  created_by INTEGER REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS class_members (
+  class_id   INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  student_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (class_id, student_id)
+);
+
 CREATE TABLE IF NOT EXISTS assignments (
   id          SERIAL PRIMARY KEY,
   problem_id  INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
   assigned_by INTEGER REFERENCES users(id),
-  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  class_id    INTEGER REFERENCES classes(id) ON DELETE CASCADE,
+  student_id  INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS submissions (

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignments — <%= problem.title %></title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: sans-serif; max-width: 760px; margin: 40px auto; padding: 0 1rem; }
+    nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    h1 { font-size: 1.4rem; margin: 0; }
+    .badge { background: #27ae60; color: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+    .back { color: #555; text-decoration: none; font-size: 0.9rem; }
+    .back:hover { color: #000; }
+    h2 { font-size: 1.1rem; margin: 1rem 0 0.25rem; }
+    .subtitle { color: #888; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .add-box { border: 1px solid #ddd; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 2rem; }
+    .add-box h3 { font-size: 0.95rem; margin: 0 0 0.75rem; }
+    .radio-group { display: flex; gap: 1.5rem; margin-bottom: 0.75rem; }
+    .radio-group label { display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; cursor: pointer; }
+    select { padding: 0.45rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; width: 100%; margin-bottom: 0.75rem; }
+    .btn { display: inline-block; padding: 0.45rem 1rem; border-radius: 4px; font-size: 0.9rem; cursor: pointer; text-decoration: none; border: none; }
+    .btn-primary { background: #2980b9; color: #fff; }
+    .btn-primary:hover { background: #2471a3; }
+    .btn-remove { background: none; border: none; color: #c0392b; font-size: 0.82rem; cursor: pointer; padding: 0; }
+    .btn-remove:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #e0e0e0; font-size: 0.9rem; }
+    th { background: #f5f5f5; font-size: 0.82rem; color: #555; }
+    .tag { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+    .tag-global { background: #d5e8d4; color: #2d6a2d; }
+    .tag-class { background: #dae8fc; color: #1a5276; }
+    .tag-student { background: #fff2cc; color: #7d6608; }
+    .empty { color: #888; font-style: italic; }
+    #class-select, #student-select { display: none; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Newborn Swing <span class="badge">Teacher</span></h1>
+    <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+
+  <a href="/dashboard" class="back">← Back to Dashboard</a>
+  <h2><%= problem.title %> — Assignments</h2>
+  <p class="subtitle">Control who can see this problem.</p>
+
+  <div class="add-box">
+    <h3>Add Assignment</h3>
+    <form method="POST" action="/problems/<%= problem.id %>/assignments">
+      <div class="radio-group">
+        <label><input type="radio" name="type" value="global" checked onchange="toggleSelects(this.value)"> All Students</label>
+        <label><input type="radio" name="type" value="class" onchange="toggleSelects(this.value)"> Class</label>
+        <label><input type="radio" name="type" value="student" onchange="toggleSelects(this.value)"> Individual Student</label>
+      </div>
+      <div id="class-select">
+        <select name="class_id">
+          <option value="">Select a class…</option>
+          <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+        </select>
+      </div>
+      <div id="student-select">
+        <select name="student_id">
+          <option value="">Select a student…</option>
+          <% students.forEach(s => { %><option value="<%= s.id %>"><%= s.name %> (<%= s.email %>)</option><% }) %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Assign</button>
+    </form>
+  </div>
+
+  <h3 style="margin-bottom:0.75rem">Current Assignments</h3>
+  <% if (assignments.length === 0) { %>
+    <p class="empty">No assignments yet.</p>
+  <% } else { %>
+    <table>
+      <thead><tr><th>Type</th><th>Target</th><th>Assigned</th><th></th></tr></thead>
+      <tbody>
+        <% assignments.forEach(a => { %>
+          <tr>
+            <td>
+              <% if (!a.class_id && !a.student_id) { %>
+                <span class="tag tag-global">Global</span>
+              <% } else if (a.class_id) { %>
+                <span class="tag tag-class">Class</span>
+              <% } else { %>
+                <span class="tag tag-student">Student</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (!a.class_id && !a.student_id) { %>All students
+              <% } else if (a.class_id) { %><%= a.class_name %>
+              <% } else { %><%= a.student_name %> <span style="color:#aaa;font-size:0.8rem">(<%= a.student_email %>)</span>
+              <% } %>
+            </td>
+            <td style="color:#aaa;font-size:0.82rem"><%= new Date(a.assigned_at).toLocaleDateString() %></td>
+            <td>
+              <form method="POST" action="/problems/<%= problem.id %>/assignments/<%= a.id %>/delete">
+                <button type="submit" class="btn-remove">Remove</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <script>
+    function toggleSelects(type) {
+      document.getElementById('class-select').style.display = type === 'class' ? 'block' : 'none';
+      document.getElementById('student-select').style.display = type === 'student' ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>

@@ -41,6 +41,7 @@ app.use((req, res, next) => {
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/problems', require('./routes/problems'));
+app.use('/classes', require('./routes/classes'));
 app.use('/api', require('./routes/api'));
 
 app.listen(PORT, () => {

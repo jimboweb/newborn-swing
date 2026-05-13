@@ -34,27 +34,71 @@ router.post('/', requireTeacher, async (req, res, next) => {
   }
 });
 
-router.post('/:id/assign', requireTeacher, async (req, res, next) => {
+router.get('/:id/assignments', requireTeacher, async (req, res, next) => {
   try {
-    await pool.query(
-      `INSERT INTO assignments (problem_id, assigned_by)
-       SELECT $1, $2
-       WHERE NOT EXISTS (SELECT 1 FROM assignments WHERE problem_id = $1)`,
-      [req.params.id, req.user.id]
+    const problem = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
+    if (!problem.rows.length) return res.status(404).send('Problem not found');
+
+    const assignments = await pool.query(
+      `SELECT a.id, a.class_id, a.student_id, a.assigned_at,
+              c.name AS class_name, u.name AS student_name, u.email AS student_email
+       FROM assignments a
+       LEFT JOIN classes c ON c.id = a.class_id
+       LEFT JOIN users u ON u.id = a.student_id
+       WHERE a.problem_id = $1
+       ORDER BY a.assigned_at`,
+      [req.params.id]
     );
-    res.redirect('/dashboard');
-  } catch (err) {
-    next(err);
-  }
+    const classes = await pool.query('SELECT * FROM classes WHERE created_by = $1 ORDER BY name', [req.user.id]);
+    const students = await pool.query("SELECT id, name, email FROM users WHERE role = 'student' ORDER BY name");
+
+    res.render('problem-assignments', {
+      user: req.user,
+      problem: problem.rows[0],
+      assignments: assignments.rows,
+      classes: classes.rows,
+      students: students.rows,
+    });
+  } catch (err) { next(err); }
 });
 
-router.post('/:id/unassign', requireTeacher, async (req, res, next) => {
+router.post('/:id/assignments', requireTeacher, async (req, res, next) => {
+  const { type, class_id, student_id } = req.body;
   try {
-    await pool.query('DELETE FROM assignments WHERE problem_id = $1', [req.params.id]);
-    res.redirect('/dashboard');
-  } catch (err) {
-    next(err);
-  }
+    if (type === 'global') {
+      await pool.query(
+        `INSERT INTO assignments (problem_id, assigned_by)
+         SELECT $1, $2 WHERE NOT EXISTS (
+           SELECT 1 FROM assignments WHERE problem_id = $1 AND class_id IS NULL AND student_id IS NULL
+         )`,
+        [req.params.id, req.user.id]
+      );
+    } else if (type === 'class' && class_id) {
+      await pool.query(
+        `INSERT INTO assignments (problem_id, assigned_by, class_id)
+         SELECT $1, $2, $3 WHERE NOT EXISTS (
+           SELECT 1 FROM assignments WHERE problem_id = $1 AND class_id = $3
+         )`,
+        [req.params.id, req.user.id, class_id]
+      );
+    } else if (type === 'student' && student_id) {
+      await pool.query(
+        `INSERT INTO assignments (problem_id, assigned_by, student_id)
+         SELECT $1, $2, $3 WHERE NOT EXISTS (
+           SELECT 1 FROM assignments WHERE problem_id = $1 AND student_id = $3
+         )`,
+        [req.params.id, req.user.id, student_id]
+      );
+    }
+    res.redirect(`/problems/${req.params.id}/assignments`);
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/assignments/:assignmentId/delete', requireTeacher, async (req, res, next) => {
+  try {
+    await pool.query('DELETE FROM assignments WHERE id = $1', [req.params.assignmentId]);
+    res.redirect(`/problems/${req.params.id}/assignments`);
+  } catch (err) { next(err); }
 });
 
 router.post('/:id/delete', requireTeacher, async (req, res, next) => {
