@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= submission.name %> — <%= problem.title %></title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: sans-serif; max-width: 960px; margin: 40px auto; padding: 0 1rem; }
+    nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    h1 { font-size: 1.4rem; margin: 0; }
+    .badge { background: #27ae60; color: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+    .back { color: #555; text-decoration: none; font-size: 0.9rem; }
+    .back:hover { color: #000; }
+    .meta { display: flex; justify-content: space-between; align-items: baseline; margin: 1rem 0 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+    .meta-left h2 { font-size: 1.1rem; margin: 0 0 0.2rem; }
+    .meta-left .sub { font-size: 0.85rem; color: #888; }
+    .result { font-size: 0.95rem; font-weight: 600; }
+    .pass { color: #1e8449; }
+    .fail { color: #c0392b; }
+    #editor { width: 100%; height: calc(100vh - 260px); min-height: 400px; border: 1px solid #ddd; border-radius: 4px; }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
+</head>
+<body>
+  <nav>
+    <h1>Newborn Swing <span class="badge">Teacher</span></h1>
+    <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+
+  <a href="/problems/<%= problem.id %>/submissions" class="back">← Back to Submissions</a>
+
+  <div class="meta">
+    <div class="meta-left">
+      <h2><%= submission.name %> &mdash; <%= problem.title %></h2>
+      <div class="sub"><%= submission.email %> &nbsp;&middot;&nbsp; <%= new Date(submission.created_at).toLocaleString() %></div>
+    </div>
+    <div class="result <%= submission.passed_count === submission.total_count ? 'pass' : 'fail' %>">
+      <%= submission.passed_count %>/<%= submission.total_count %> passed
+    </div>
+  </div>
+
+  <div id="editor"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+  <script>
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      monaco.editor.create(document.getElementById('editor'), {
+        value: <%- JSON.stringify(submission.code) %>,
+        language: 'python',
+        theme: 'vs-dark',
+        readOnly: true,
+        fontSize: 14,
+        minimap: { enabled: false },
+        scrollBeyondLastLine: false,
+      });
+    });
+  </script>
+</body>
+</html>

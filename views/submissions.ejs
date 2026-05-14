@@ -20,11 +20,8 @@
     .pass { color: #1e8449; font-weight: 600; }
     .fail { color: #c0392b; font-weight: 600; }
     .empty { color: #888; padding: 2rem 0; text-align: center; }
-    .code-toggle { font-size: 0.8rem; color: #2980b9; cursor: pointer; background: none; border: none; padding: 0; }
-    .code-toggle:hover { text-decoration: underline; }
-    .code-block { display: none; margin-top: 0.5rem; background: #1e1e1e; color: #d4d4d4;
-      padding: 0.75rem; border-radius: 4px; font-family: monospace; font-size: 0.78rem;
-      white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+    .view-link { font-size: 0.8rem; color: #2980b9; text-decoration: none; }
+    .view-link:hover { text-decoration: underline; }
     .date { color: #888; font-size: 0.82rem; }
   </style>
 </head>
@@ -51,7 +48,7 @@
         </tr>
       </thead>
       <tbody>
-        <% submissions.forEach((s, i) => { %>
+        <% submissions.forEach(s => { %>
           <% const allPass = s.passed_count === s.total_count; %>
           <tr>
             <td>
@@ -63,8 +60,7 @@
             </td>
             <td class="date"><%= new Date(s.created_at).toLocaleString() %></td>
             <td>
-              <button class="code-toggle" onclick="toggleCode(<%= i %>)">View code</button>
-              <pre class="code-block" id="code-<%= i %>"><%= s.code %></pre>
+              <a href="/problems/<%= problem.id %>/submissions/<%= s.id %>" class="view-link">View code</a>
             </td>
           </tr>
         <% }) %>
@@ -72,14 +68,6 @@
     </table>
   <% } %>
 
-  <script>
-    function toggleCode(i) {
-      const block = document.getElementById('code-' + i);
-      const btn = block.previousElementSibling;
-      const visible = block.style.display === 'block';
-      block.style.display = visible ? 'none' : 'block';
-      btn.textContent = visible ? 'View code' : 'Hide code';
-    }
-  </script>
+
 </body>
 </html>

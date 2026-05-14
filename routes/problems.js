@@ -156,7 +156,7 @@ router.get('/:id/submissions', requireTeacher, async (req, res, next) => {
 
     const submissions = await pool.query(
       `SELECT DISTINCT ON (s.student_id)
-              u.name, u.email, s.passed_count, s.total_count, s.created_at, s.code
+              s.id, u.name, u.email, s.passed_count, s.total_count, s.created_at, s.code
        FROM submissions s
        JOIN users u ON u.id = s.student_id
        WHERE s.problem_id = $1
@@ -172,6 +172,29 @@ router.get('/:id/submissions', requireTeacher, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+router.get('/:id/submissions/:submissionId', requireTeacher, async (req, res, next) => {
+  try {
+    const problemResult = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
+    if (!problemResult.rows.length) return res.status(404).send('Problem not found');
+
+    const subResult = await pool.query(
+      `SELECT s.id, s.code, s.passed_count, s.total_count, s.created_at,
+              u.name, u.email
+       FROM submissions s
+       JOIN users u ON u.id = s.student_id
+       WHERE s.id = $1 AND s.problem_id = $2`,
+      [req.params.submissionId, req.params.id]
+    );
+    if (!subResult.rows.length) return res.status(404).send('Submission not found');
+
+    res.render('submission-detail', {
+      user: req.user,
+      problem: problemResult.rows[0],
+      submission: subResult.rows[0],
+    });
+  } catch (err) { next(err); }
 });
 
 router.get('/:id', requireAuth, async (req, res, next) => {
