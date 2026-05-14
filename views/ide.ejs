@@ -44,6 +44,8 @@
     .btn { padding: 0.35rem 0.9rem; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85rem; }
     .btn-back { background: transparent; color: #9e9e9e; border: 1px solid #3e3e3e; }
     .btn-back:hover { background: #3e3e3e; color: #d4d4d4; }
+    .btn-history { background: transparent; color: #9e9e9e; border: 1px solid #3e3e3e; text-decoration: none; }
+    .btn-history:hover { background: #3e3e3e; color: #d4d4d4; }
     .btn-run { background: #0e639c; color: #fff; }
     .btn-run:hover:not(:disabled) { background: #1177bb; }
     .btn-run:disabled { opacity: 0.5; cursor: default; }
@@ -62,6 +64,7 @@
   <header>
     <a class="btn btn-back" href="/dashboard">← Back</a>
     <h1><%= problem.title %></h1>
+    <% if (user.role === 'student') { %><a class="btn btn-history" href="/problems/<%= problem.id %>/history">History</a><% } %>
     <button class="btn btn-run" id="run-btn">▶ Run</button>
     <button class="btn btn-submit" id="submit-btn">✓ Submit</button>
   </header>

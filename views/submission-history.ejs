@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Submissions — <%= problem.title %></title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 1rem; }
+    nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
+    h1 { font-size: 1.25rem; margin: 0; }
+    .back { color: #555; text-decoration: none; font-size: 0.9rem; }
+    .back:hover { color: #000; }
+    h2 { font-size: 1rem; margin: 1rem 0 0.75rem; color: #555; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #e0e0e0; font-size: 0.9rem; }
+    th { background: #f5f5f5; font-size: 0.82rem; color: #555; }
+    .pass { color: #1e8449; font-weight: 600; }
+    .fail { color: #c0392b; font-weight: 600; }
+    .view-link { font-size: 0.8rem; color: #2980b9; text-decoration: none; }
+    .view-link:hover { text-decoration: underline; }
+    .empty { color: #888; font-style: italic; }
+    .date { color: #888; font-size: 0.82rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Newborn Swing</h1>
+    <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+
+  <a href="/problems/<%= problem.id %>" class="back">← Back to Problem</a>
+  <h2><%= problem.title %> — My Submissions</h2>
+
+  <% if (submissions.length === 0) { %>
+    <p class="empty">No submissions yet.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Result</th><th>Submitted</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% submissions.forEach((s, i) => { %>
+          <% const allPass = s.passed_count === s.total_count; %>
+          <tr>
+            <td class="date"><%= submissions.length - i %></td>
+            <td class="<%= allPass ? 'pass' : 'fail' %>"><%= s.passed_count %>/<%= s.total_count %> passed</td>
+            <td class="date"><%= new Date(s.created_at).toLocaleString() %></td>
+            <td><a href="/problems/<%= problem.id %>/submissions/<%= s.id %>" class="view-link">View code</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</body>
+</html>

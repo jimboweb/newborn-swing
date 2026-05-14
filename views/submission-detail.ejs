@@ -24,16 +24,25 @@
 </head>
 <body>
   <nav>
-    <h1>Newborn Swing <span class="badge">Teacher</span></h1>
+    <h1>Newborn Swing <% if (user.role === 'teacher') { %><span class="badge">Teacher</span><% } %></h1>
     <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
   </nav>
 
-  <a href="/problems/<%= problem.id %>/submissions" class="back">← Back to Submissions</a>
+  <% if (user.role === 'teacher') { %>
+    <a href="/problems/<%= problem.id %>/submissions" class="back">← Back to Submissions</a>
+  <% } else { %>
+    <a href="/problems/<%= problem.id %>/history" class="back">← Back to History</a>
+  <% } %>
 
   <div class="meta">
     <div class="meta-left">
-      <h2><%= submission.name %> &mdash; <%= problem.title %></h2>
-      <div class="sub"><%= submission.email %> &nbsp;&middot;&nbsp; <%= new Date(submission.created_at).toLocaleString() %></div>
+      <% if (user.role === 'teacher') { %>
+        <h2><%= submission.name %> &mdash; <%= problem.title %></h2>
+        <div class="sub"><%= submission.email %> &nbsp;&middot;&nbsp; <%= new Date(submission.created_at).toLocaleString() %></div>
+      <% } else { %>
+        <h2><%= problem.title %></h2>
+        <div class="sub"><%= new Date(submission.created_at).toLocaleString() %></div>
+      <% } %>
     </div>
     <div class="result <%= submission.passed_count === submission.total_count ? 'pass' : 'fail' %>">
       <%= submission.passed_count %>/<%= submission.total_count %> passed

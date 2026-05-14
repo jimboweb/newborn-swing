@@ -174,13 +174,34 @@ router.get('/:id/submissions', requireTeacher, async (req, res, next) => {
   }
 });
 
-router.get('/:id/submissions/:submissionId', requireTeacher, async (req, res, next) => {
+router.get('/:id/history', requireAuth, async (req, res, next) => {
+  try {
+    const problemResult = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
+    if (!problemResult.rows.length) return res.status(404).send('Problem not found');
+
+    const submissions = await pool.query(
+      `SELECT id, passed_count, total_count, created_at
+       FROM submissions
+       WHERE problem_id = $1 AND student_id = $2
+       ORDER BY created_at DESC`,
+      [req.params.id, req.user.id]
+    );
+
+    res.render('submission-history', {
+      user: req.user,
+      problem: problemResult.rows[0],
+      submissions: submissions.rows,
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/:id/submissions/:submissionId', requireAuth, async (req, res, next) => {
   try {
     const problemResult = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
     if (!problemResult.rows.length) return res.status(404).send('Problem not found');
 
     const subResult = await pool.query(
-      `SELECT s.id, s.code, s.passed_count, s.total_count, s.created_at,
+      `SELECT s.id, s.code, s.passed_count, s.total_count, s.created_at, s.student_id,
               u.name, u.email
        FROM submissions s
        JOIN users u ON u.id = s.student_id
@@ -189,10 +210,15 @@ router.get('/:id/submissions/:submissionId', requireTeacher, async (req, res, ne
     );
     if (!subResult.rows.length) return res.status(404).send('Submission not found');
 
+    const sub = subResult.rows[0];
+    if (req.user.role !== 'teacher' && req.user.id !== sub.student_id) {
+      return res.status(403).send('Forbidden');
+    }
+
     res.render('submission-detail', {
       user: req.user,
       problem: problemResult.rows[0],
-      submission: subResult.rows[0],
+      submission: sub,
     });
   } catch (err) { next(err); }
 });
