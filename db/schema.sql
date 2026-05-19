@@ -17,12 +17,14 @@ CREATE TABLE IF NOT EXISTS session (
 CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
 
 CREATE TABLE IF NOT EXISTS problems (
-  id           SERIAL PRIMARY KEY,
-  title        TEXT NOT NULL,
-  description  TEXT NOT NULL,
-  starter_code TEXT NOT NULL DEFAULT '',
-  created_by   INTEGER REFERENCES users(id),
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                  SERIAL PRIMARY KEY,
+  title               TEXT NOT NULL,
+  description         TEXT NOT NULL,
+  starter_code        TEXT NOT NULL DEFAULT '',
+  default_stdin       TEXT NOT NULL DEFAULT '',
+  time_limit_seconds  INTEGER NOT NULL DEFAULT 5,
+  created_by          INTEGER REFERENCES users(id),
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS test_cases (

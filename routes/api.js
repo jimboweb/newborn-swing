@@ -9,9 +9,9 @@ const os = require('os');
 const crypto = require('crypto');
 
 const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
-const TIMEOUT_MS = 5000;
+const DEFAULT_TIMEOUT_MS = 5000;
 
-function runPython(code, stdin = '') {
+function runPython(code, stdin = '', timeoutMs = DEFAULT_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     const file = path.join(os.tmpdir(), `ns_${crypto.randomBytes(8).toString('hex')}.py`);
     fs.writeFileSync(file, code);
@@ -19,11 +19,12 @@ function runPython(code, stdin = '') {
     const proc = spawn(PYTHON, [file], { cwd: os.tmpdir() });
     let stdout = '', stderr = '';
 
+    const limitSec = Math.round(timeoutMs / 1000);
     const timer = setTimeout(() => {
       proc.kill();
       try { fs.unlinkSync(file); } catch {}
-      resolve({ stdout: '', stderr: 'Time limit exceeded (5s)', code: -1 });
-    }, TIMEOUT_MS);
+      resolve({ stdout: '', stderr: `Time limit exceeded (${limitSec}s)`, code: -1 });
+    }, timeoutMs);
 
     proc.stdin.write(stdin || '');
     proc.stdin.end();
@@ -49,6 +50,10 @@ router.post('/submit', requireAuth, async (req, res) => {
   if (!code || !code.trim()) return res.status(400).json({ error: 'No code provided' });
 
   try {
+    const problemResult = await pool.query('SELECT time_limit_seconds FROM problems WHERE id = $1', [problem_id]);
+    if (!problemResult.rows.length) return res.status(400).json({ error: 'Problem not found' });
+    const timeoutMs = problemResult.rows[0].time_limit_seconds * 1000;
+
     const tcResult = await pool.query(
       'SELECT * FROM test_cases WHERE problem_id = $1 ORDER BY id',
       [problem_id]
@@ -57,7 +62,7 @@ router.post('/submit', requireAuth, async (req, res) => {
     if (!testCases.length) return res.status(400).json({ error: 'No test cases for this problem' });
 
     const results = await Promise.all(testCases.map(async (tc) => {
-      const run = await runPython(code, tc.input);
+      const run = await runPython(code, tc.input, timeoutMs);
       const actual = (run.stdout || '').trimEnd();
       const expected = tc.expected_output.trimEnd();
       return {
@@ -83,10 +88,15 @@ router.post('/submit', requireAuth, async (req, res) => {
 });
 
 router.post('/run', requireAuth, async (req, res) => {
-  const { code, stdin = '' } = req.body;
+  const { code, stdin = '', problem_id } = req.body;
   if (!code || !code.trim()) return res.json({ stdout: '(no code)' });
   try {
-    const run = await runPython(code, stdin);
+    let timeoutMs = DEFAULT_TIMEOUT_MS;
+    if (problem_id) {
+      const r = await pool.query('SELECT time_limit_seconds FROM problems WHERE id = $1', [problem_id]);
+      if (r.rows.length) timeoutMs = r.rows[0].time_limit_seconds * 1000;
+    }
+    const run = await runPython(code, stdin, timeoutMs);
     res.json({
       stdout: run.stdout || '',
       stderr: run.stderr || '',

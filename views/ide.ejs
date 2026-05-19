@@ -75,10 +75,11 @@
       <div class="problem-desc">
         <h2>Problem</h2>
         <pre><%= problem.description %></pre>
+        <p style="margin-top:0.75rem;font-size:0.75rem;color:#858585">Time limit: <%= problem.time_limit_seconds %>s</p>
       </div>
       <div class="stdin-panel">
         <label for="stdin">Standard Input (stdin)</label>
-        <textarea id="stdin" placeholder="Optional input for your program..."></textarea>
+        <textarea id="stdin" placeholder="Optional input for your program..."><%= problem.default_stdin %></textarea>
       </div>
       <div class="output-panel" id="run-panel">
         <div class="output-label">
@@ -127,6 +128,7 @@
             body: JSON.stringify({
               code: editor.getValue(),
               stdin: document.getElementById('stdin').value,
+              problem_id: <%= problem.id %>,
             }),
           });
           const data = await res.json();

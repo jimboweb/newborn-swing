@@ -8,11 +8,12 @@ router.get('/new', requireTeacher, (req, res) => {
 });
 
 router.post('/', requireTeacher, async (req, res, next) => {
-  const { title, description, starter_code, inputs, expected_outputs, is_hidden } = req.body;
+  const { title, description, starter_code, default_stdin, time_limit_seconds, inputs, expected_outputs, is_hidden } = req.body;
+  const timeLimit = Math.max(1, Math.min(60, parseInt(time_limit_seconds, 10) || 5));
   try {
     const result = await pool.query(
-      'INSERT INTO problems (title, description, starter_code, created_by) VALUES ($1, $2, $3, $4) RETURNING *',
-      [title, description, starter_code || '', req.user.id]
+      'INSERT INTO problems (title, description, starter_code, default_stdin, time_limit_seconds, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [title, description, starter_code || '', default_stdin || '', timeLimit, req.user.id]
     );
     const problemId = result.rows[0].id;
 
@@ -122,11 +123,12 @@ router.get('/:id/edit', requireTeacher, async (req, res, next) => {
 });
 
 router.post('/:id/edit', requireTeacher, async (req, res, next) => {
-  const { title, description, starter_code, inputs, expected_outputs, is_hidden } = req.body;
+  const { title, description, starter_code, default_stdin, time_limit_seconds, inputs, expected_outputs, is_hidden } = req.body;
+  const timeLimit = Math.max(1, Math.min(60, parseInt(time_limit_seconds, 10) || 5));
   try {
     await pool.query(
-      'UPDATE problems SET title = $1, description = $2, starter_code = $3 WHERE id = $4 AND created_by = $5',
-      [title, description, starter_code || '', req.params.id, req.user.id]
+      'UPDATE problems SET title = $1, description = $2, starter_code = $3, default_stdin = $4, time_limit_seconds = $5 WHERE id = $6 AND created_by = $7',
+      [title, description, starter_code || '', default_stdin || '', timeLimit, req.params.id, req.user.id]
     );
 
     await pool.query('DELETE FROM test_cases WHERE problem_id = $1', [req.params.id]);
