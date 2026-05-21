@@ -66,3 +66,27 @@ CREATE TABLE IF NOT EXISTS submissions (
   total_count  INTEGER NOT NULL DEFAULT 0,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS sequences (
+  id          SERIAL PRIMARY KEY,
+  title       TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  created_by  INTEGER REFERENCES users(id),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sequence_problems (
+  sequence_id INTEGER NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
+  problem_id  INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+  position    INTEGER NOT NULL,
+  PRIMARY KEY (sequence_id, problem_id)
+);
+
+CREATE TABLE IF NOT EXISTS sequence_assignments (
+  id          SERIAL PRIMARY KEY,
+  sequence_id INTEGER NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
+  assigned_by INTEGER REFERENCES users(id),
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  class_id    INTEGER REFERENCES classes(id) ON DELETE CASCADE,
+  student_id  INTEGER REFERENCES users(id) ON DELETE CASCADE
+);

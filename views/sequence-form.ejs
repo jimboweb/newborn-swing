@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= sequence ? 'Edit' : 'New' %> Sequence — Newborn Swing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: sans-serif; max-width: 680px; margin: 40px auto; padding: 0 1rem; }
+    nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    h1 { font-size: 1.4rem; margin: 0; }
+    .badge { background: #27ae60; color: #fff; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+    .back { color: #555; text-decoration: none; font-size: 0.9rem; }
+    .back:hover { color: #000; }
+    h2 { font-size: 1.1rem; margin: 1.5rem 0 1rem; }
+    label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+    input[type=text], textarea { width: 100%; padding: 0.5rem 0.65rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; font-family: inherit; }
+    textarea { height: 80px; resize: vertical; }
+    .field { margin-bottom: 1.25rem; }
+    .slot { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .slot .pos { width: 1.5rem; text-align: right; color: #888; font-size: 0.85rem; flex-shrink: 0; }
+    .slot select { flex: 1; padding: 0.45rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+    .slot button { padding: 0.3rem 0.55rem; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer; font-size: 0.8rem; flex-shrink: 0; }
+    .slot button:hover { background: #e8e8e8; }
+    .slot .btn-remove { color: #c0392b; border-color: #e9b0ab; background: #fef0ef; }
+    .slot .btn-remove:hover { background: #fddad8; }
+    .btn-add { margin-top: 0.25rem; padding: 0.4rem 0.9rem; border: 1px dashed #2980b9; border-radius: 4px; background: none; color: #2980b9; cursor: pointer; font-size: 0.88rem; }
+    .btn-add:hover { background: #eaf3fb; }
+    .actions { display: flex; gap: 0.75rem; margin-top: 2rem; }
+    .btn { display: inline-block; padding: 0.5rem 1.25rem; border-radius: 4px; font-size: 0.95rem; cursor: pointer; text-decoration: none; border: none; }
+    .btn-primary { background: #2980b9; color: #fff; }
+    .btn-primary:hover { background: #2471a3; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #e0e0e0; }
+    #slots { margin-top: 0.5rem; }
+    .hint { font-size: 0.82rem; color: #888; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Newborn Swing <span class="badge">Teacher</span></h1>
+    <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+
+  <a href="/dashboard" class="back">← Back to Dashboard</a>
+  <h2><%= sequence ? 'Edit Sequence' : 'New Sequence' %></h2>
+
+  <form method="POST" action="<%= sequence ? '/sequences/' + sequence.id + '/edit' : '/sequences' %>" id="seq-form">
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" value="<%= sequence ? sequence.title : '' %>" required>
+    </div>
+    <div class="field">
+      <label for="description">Description <span style="font-weight:normal;color:#888">(optional)</span></label>
+      <textarea id="description" name="description"><%= sequence ? sequence.description : '' %></textarea>
+    </div>
+
+    <div class="field">
+      <label>Problems <span style="font-weight:normal;color:#888">(in order — students must complete each before unlocking the next)</span></label>
+      <div id="slots"></div>
+      <button type="button" class="btn-add" onclick="addSlot()">+ Add Problem</button>
+      <p class="hint">Drag not supported — use ↑ ↓ to reorder.</p>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">Save Sequence</button>
+      <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+
+  <script>
+    const availableProblems = <%- JSON.stringify(availableProblems) %>;
+    const currentProblems = <%- JSON.stringify(currentProblems) %>;
+
+    function buildOptions(selectedId) {
+      return '<option value="">— select a problem —</option>' +
+        availableProblems.map(p =>
+          `<option value="${p.id}"${String(p.id) === String(selectedId) ? ' selected' : ''}>${p.title.replace(/"/g, '&quot;')}</option>`
+        ).join('');
+    }
+
+    function addSlot(selectedId) {
+      const slots = document.getElementById('slots');
+      const div = document.createElement('div');
+      div.className = 'slot';
+      div.innerHTML = `
+        <span class="pos"></span>
+        <select name="problem_ids">${buildOptions(selectedId || '')}</select>
+        <button type="button" title="Move up" onclick="moveSlot(this.parentNode, -1)">↑</button>
+        <button type="button" title="Move down" onclick="moveSlot(this.parentNode, 1)">↓</button>
+        <button type="button" class="btn-remove" title="Remove" onclick="this.parentNode.remove(); renumber()">×</button>
+      `;
+      slots.appendChild(div);
+      renumber();
+    }
+
+    function moveSlot(slot, dir) {
+      const slots = document.getElementById('slots');
+      const children = [...slots.children];
+      const idx = children.indexOf(slot);
+      const target = idx + dir;
+      if (target < 0 || target >= children.length) return;
+      if (dir === -1) slots.insertBefore(slot, children[target]);
+      else slots.insertBefore(children[target], slot);
+      renumber();
+    }
+
+    function renumber() {
+      document.querySelectorAll('#slots .slot .pos').forEach((pos, i) => {
+        pos.textContent = (i + 1) + '.';
+      });
+    }
+
+    if (currentProblems.length === 0) {
+      addSlot();
+    } else {
+      currentProblems.forEach(p => addSlot(p.problem_id));
+    }
+  </script>
+</body>
+</html>

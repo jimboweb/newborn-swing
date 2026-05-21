@@ -26,6 +26,19 @@
     .badge-pass { background: #d4edda; color: #155724; }
     .badge-fail { background: #f8d7da; color: #721c24; }
     .badge-none { background: #e9ecef; color: #6c757d; }
+    .sequence-card { border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1.25rem; overflow: hidden; }
+    .sequence-header { background: #f8f4fd; padding: 0.75rem 1.25rem; border-bottom: 1px solid #ddd; }
+    .sequence-title { font-weight: 700; font-size: 1rem; color: #5b2c8a; }
+    .sequence-desc { font-size: 0.82rem; color: #888; margin-top: 0.15rem; }
+    .seq-problem-list { list-style: none; margin: 0; padding: 0; }
+    .seq-problem-list li { border-bottom: 1px solid #f0f0f0; }
+    .seq-problem-list li:last-child { border-bottom: none; }
+    .seq-problem-link { display: block; padding: 0.75rem 1.25rem; text-decoration: none; color: inherit; transition: background 0.1s; }
+    .seq-problem-link:hover { background: #faf5ff; }
+    .seq-problem-locked { display: flex; align-items: center; padding: 0.75rem 1.25rem; color: #aaa; cursor: default; }
+    .lock-icon { margin-right: 0.6rem; font-size: 0.9rem; flex-shrink: 0; }
+    .seq-problem-locked .problem-title { color: #bbb; }
+    .seq-problem-locked .problem-desc { color: #ccc; }
   </style>
 </head>
 <body>
@@ -33,6 +46,49 @@
     <h1>Newborn Swing</h1>
     <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
   </nav>
+
+  <% if (sequences.length > 0) { %>
+    <h2>Problem Sequences</h2>
+    <% sequences.forEach(seq => { %>
+      <div class="sequence-card">
+        <div class="sequence-header">
+          <div class="sequence-title"><%= seq.title %></div>
+          <% if (seq.description) { %><div class="sequence-desc"><%= seq.description %></div><% } %>
+        </div>
+        <ul class="seq-problem-list">
+          <% seq.problems.forEach(p => { %>
+            <li>
+              <% if (p.unlocked) { %>
+                <a href="/problems/<%= p.id %>" class="seq-problem-link">
+                  <div class="problem-meta">
+                    <div class="problem-title"><%= p.position %>. <%= p.title %></div>
+                    <% if (p.total_count != null) { %>
+                      <% const allPass = p.passed_count === p.total_count; %>
+                      <span class="badge <%= allPass ? 'badge-pass' : 'badge-fail' %>">
+                        <%= p.passed_count %>/<%= p.total_count %> passed
+                      </span>
+                    <% } else { %>
+                      <span class="badge badge-none">Not attempted</span>
+                    <% } %>
+                  </div>
+                  <div class="problem-desc"><%= p.description %></div>
+                </a>
+              <% } else { %>
+                <div class="seq-problem-locked">
+                  <span class="lock-icon">🔒</span>
+                  <div>
+                    <div class="problem-title"><%= p.position %>. <%= p.title %></div>
+                    <div class="problem-desc">Complete the previous challenge to unlock</div>
+                  </div>
+                </div>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    <% }) %>
+  <% } %>
+
   <h2>Assigned Problems</h2>
   <% if (problems.length === 0) { %>
     <p class="empty">No problems assigned yet. Check back soon.</p>

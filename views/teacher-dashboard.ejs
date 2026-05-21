@@ -41,6 +41,7 @@
     <div style="display:flex;gap:0.5rem">
       <a href="/classes" class="btn" style="background:#16a085;color:#fff">Classes</a>
       <a href="/students" class="btn" style="background:#555;color:#fff">Students</a>
+      <a href="/sequences/new" class="btn" style="background:#7d3c98;color:#fff">+ New Sequence</a>
       <a href="/problems/new" class="btn btn-primary">+ New Problem</a>
     </div>
   </div>
@@ -69,6 +70,42 @@
                 <a href="/problems/<%= p.id %>/assignments" class="btn-assign">Assignments</a>
                 <a href="/problems/<%= p.id %>/submissions" class="btn btn-submissions">Submissions</a>
                 <form method="POST" action="/problems/<%= p.id %>/delete" onsubmit="return confirm('Delete this problem and all its submissions?')">
+                  <button type="submit" class="btn btn-delete">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <div class="top" style="margin-top:2.5rem">
+    <h2 style="margin:0">Sequences</h2>
+  </div>
+  <% if (sequences.length === 0) { %>
+    <p class="empty">No sequences yet. <a href="/sequences/new" style="color:#7d3c98">Create one</a> to chain problems together.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% sequences.forEach(seq => { %>
+          <tr>
+            <td><strong><%= seq.title %></strong></td>
+            <td class="desc"><%= seq.description %></td>
+            <td style="white-space:nowrap;font-size:0.85rem;color:#888"><%= new Date(seq.created_at).toLocaleDateString() %></td>
+            <td>
+              <div class="actions">
+                <a href="/sequences/<%= seq.id %>/edit" class="btn-edit">Edit</a>
+                <a href="/sequences/<%= seq.id %>/assign" class="btn-assign">Assign</a>
+                <form method="POST" action="/sequences/<%= seq.id %>/delete" onsubmit="return confirm('Delete this sequence?')">
                   <button type="submit" class="btn btn-delete">Delete</button>
                 </form>
               </div>
