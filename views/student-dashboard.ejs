@@ -44,7 +44,10 @@
 <body>
   <nav>
     <h1>Newborn Swing</h1>
-    <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+    <span>
+      <a href="/cards" style="margin-right:1rem;color:#2980b9;text-decoration:none;font-size:0.9rem">Checkpoint Cards</a>
+      <%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a>
+    </span>
   </nav>
 
   <% if (sequences.length > 0) { %>

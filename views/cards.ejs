@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkpoint Cards — Newborn Swing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #f7f7f8;
+    }
+
+    /* ── Top nav ── */
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1.25rem;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+      gap: 1rem;
+    }
+    .topnav-left { display: flex; align-items: center; gap: 1rem; }
+    .topnav h1 { font-size: 1rem; font-weight: 700; color: #111; white-space: nowrap; }
+    .back-link { font-size: 0.85rem; color: #2980b9; text-decoration: none; white-space: nowrap; }
+    .back-link:hover { text-decoration: underline; }
+    .topnav-right { font-size: 0.85rem; color: #555; white-space: nowrap; }
+    .topnav-right a { color: #555; text-decoration: none; }
+    .topnav-right a:hover { text-decoration: underline; }
+
+    /* ── Layout: drawer + ladder ── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Card drawer ── */
+    .card-drawer {
+      width: 0;
+      overflow: hidden;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      flex-shrink: 0;
+      transition: width 0.22s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-drawer.open { width: 420px; }
+
+    .drawer-inner {
+      width: 420px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid #e8e8e8;
+      flex-shrink: 0;
+      gap: 0.75rem;
+    }
+    .drawer-header-text { flex: 1; min-width: 0; }
+    .drawer-code { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; color: #888; text-transform: uppercase; margin-bottom: 0.2rem; }
+    .drawer-title { font-size: 1.05rem; font-weight: 700; color: #111; line-height: 1.3; }
+
+    .close-btn {
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      color: #555;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-btn:hover { background: #f0f0f0; }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+    }
+
+    /* ── Rendered markdown inside drawer ── */
+    .card-md h2 { font-size: 1rem; font-weight: 700; margin: 1.25rem 0 0.5rem; color: #111; }
+    .card-md h2:first-child { margin-top: 0; }
+    .card-md h3 { font-size: 0.92rem; font-weight: 700; margin: 1rem 0 0.35rem; color: #333; }
+    .card-md p { font-size: 0.92rem; line-height: 1.6; color: #222; margin-bottom: 0.75rem; }
+    .card-md ul, .card-md ol { padding-left: 1.4rem; margin-bottom: 0.75rem; }
+    .card-md li { font-size: 0.92rem; line-height: 1.6; color: #222; margin-bottom: 0.25rem; }
+    .card-md code { background: #f0f0f0; padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.88em; font-family: monospace; color: #c7254e; }
+    .card-md pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 0.75rem 1rem; overflow-x: auto; margin-bottom: 0.75rem; }
+    .card-md pre code { background: none; padding: 0; color: #222; font-size: 0.85rem; }
+    .card-md strong { font-weight: 700; }
+    .card-md blockquote { border-left: 3px solid #ccc; padding-left: 0.75rem; color: #555; margin-bottom: 0.75rem; }
+    .card-md hr { border: none; border-top: 1px solid #e0e0e0; margin: 1rem 0; }
+
+    .drawer-loading { color: #888; font-size: 0.9rem; padding: 2rem 1.25rem; }
+    .drawer-error   { color: #c0392b; font-size: 0.9rem; padding: 2rem 1.25rem; }
+
+    /* ── Ladder panel ── */
+    .ladder {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+
+    .search-row {
+      margin-bottom: 1.5rem;
+    }
+    .search-input {
+      width: 100%;
+      max-width: 420px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.95rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      outline: none;
+    }
+    .search-input:focus { border-color: #2980b9; box-shadow: 0 0 0 3px rgba(41,128,185,0.15); }
+
+    /* ── Tier groups ── */
+    .tier-group { margin-bottom: 2rem; }
+    .tier-heading {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid #e4e4e4;
+    }
+
+    .extension-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.75rem 0 1.25rem;
+      color: #aaa;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .extension-divider::before,
+    .extension-divider::after {
+      content: '';
+      flex: 1;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    /* ── Checkpoint rows ── */
+    .checkpoint-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid #e4e4e4;
+      border-radius: 7px;
+      margin-bottom: 0.45rem;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
+      text-align: left;
+      width: 100%;
+    }
+    .checkpoint-item:hover {
+      border-color: #2980b9;
+      box-shadow: 0 0 0 3px rgba(41,128,185,0.1);
+    }
+    .checkpoint-item.active {
+      border-color: #2980b9;
+      background: #f0f7ff;
+    }
+    .checkpoint-item.no-card {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .checkpoint-item.no-card:hover {
+      border-color: #e4e4e4;
+      box-shadow: none;
+    }
+    .checkpoint-item.hidden { display: none; }
+
+    .cp-code {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #888;
+      white-space: nowrap;
+      min-width: 2.8rem;
+    }
+    .cp-title {
+      flex: 1;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #111;
+    }
+    .cp-finish {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #27ae60;
+      background: #eafaf1;
+      border: 1px solid #a9dfbf;
+      border-radius: 10px;
+      padding: 0.15rem 0.55rem;
+      white-space: nowrap;
+    }
+    .cp-arrow {
+      color: #bbb;
+      font-size: 0.85rem;
+    }
+    .cp-coming {
+      font-size: 0.75rem;
+      color: #bbb;
+      font-style: italic;
+    }
+
+    /* No-results message */
+    .no-results {
+      color: #888;
+      font-size: 0.9rem;
+      font-style: italic;
+      padding: 0.5rem 0;
+    }
+
+    @media (max-width: 700px) {
+      .card-drawer.open { width: 100vw; }
+      .drawer-inner { width: 100vw; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="topnav-left">
+      <h1>Newborn Swing</h1>
+      <a href="/dashboard" class="back-link">&#8592; Dashboard</a>
+    </div>
+    <span class="topnav-right"><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+
+  <div class="layout">
+    <!-- Card drawer (slides in from left) -->
+    <aside class="card-drawer" id="card-drawer" aria-label="Card content" aria-hidden="true">
+      <div class="drawer-inner">
+        <div class="drawer-header" id="drawer-header">
+          <div class="drawer-header-text">
+            <div class="drawer-code" id="drawer-code"></div>
+            <div class="drawer-title" id="drawer-title"></div>
+          </div>
+          <button class="close-btn" id="close-btn" aria-label="Close card" onclick="closeDrawer()">&#x2715;</button>
+        </div>
+        <div class="drawer-body" id="drawer-body">
+          <p class="drawer-loading" id="drawer-placeholder">Select a checkpoint to read its card.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Checkpoint ladder -->
+    <main class="ladder" id="ladder">
+      <div class="search-row">
+        <input
+          type="search"
+          class="search-input"
+          id="search-input"
+          placeholder="Search checkpoints..."
+          aria-label="Search checkpoints"
+          autocomplete="off"
+        >
+      </div>
+
+      <%
+        // Group checkpoints: main track (ordinal 1-8) vs extension (ordinal 9+)
+        const mainTrack = checkpoints.filter(cp => cp.ordinal <= 8);
+        const extension = checkpoints.filter(cp => cp.ordinal > 8);
+
+        // Within main track, group by tier
+        const tiers = {};
+        for (const cp of mainTrack) {
+          if (!tiers[cp.tier]) tiers[cp.tier] = [];
+          tiers[cp.tier].push(cp);
+        }
+        const tierLabels = { 1: 'Tier 1 — Planning', 2: 'Tier 2 — HTML', 3: 'Tier 3 — CSS' };
+      %>
+
+      <% for (const [tier, cps] of Object.entries(tiers)) { %>
+        <div class="tier-group" data-tier="<%= tier %>">
+          <div class="tier-heading"><%= tierLabels[tier] || 'Tier ' + tier %></div>
+          <% for (const cp of cps) { %>
+            <%
+              const hasCard = cp.card_id != null;
+              const isFinish = cp.code === 'C08';
+              const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
+            %>
+            <% if (hasCard) { %>
+            <button
+              class="checkpoint-item"
+              data-code="<%= cp.code %>"
+              data-title="<%= cp.title %>"
+              data-keywords="<%= keywords %>"
+              aria-label="<%= cp.code %>: <%= cp.title %>"
+              onclick="openCard('<%= cp.code %>')"
+            >
+            <% } else { %>
+            <button
+              class="checkpoint-item no-card"
+              data-code="<%= cp.code %>"
+              data-title="<%= cp.title %>"
+              data-keywords="<%= keywords %>"
+              aria-label="<%= cp.code %>: <%= cp.title %> (card coming soon)"
+              disabled
+            >
+            <% } %>
+              <span class="cp-code"><%= cp.code %></span>
+              <span class="cp-title"><%= cp.title %></span>
+              <% if (isFinish) { %><span class="cp-finish">Finish line</span><% } %>
+              <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
+              <% if (hasCard) { %><span class="cp-arrow">&#8250;</span><% } %>
+            </button>
+          <% } %>
+        </div>
+      <% } %>
+
+      <% if (extension.length > 0) { %>
+        <div class="extension-divider">Going further</div>
+        <div class="tier-group" data-tier="extension">
+          <% for (const cp of extension) { %>
+            <%
+              const hasCard = cp.card_id != null;
+              const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
+            %>
+            <% if (hasCard) { %>
+            <button
+              class="checkpoint-item"
+              data-code="<%= cp.code %>"
+              data-title="<%= cp.title %>"
+              data-keywords="<%= keywords %>"
+              aria-label="<%= cp.code %>: <%= cp.title %>"
+              onclick="openCard('<%= cp.code %>')"
+            >
+            <% } else { %>
+            <button
+              class="checkpoint-item no-card"
+              data-code="<%= cp.code %>"
+              data-title="<%= cp.title %>"
+              data-keywords="<%= keywords %>"
+              aria-label="<%= cp.code %>: <%= cp.title %> (card coming soon)"
+              disabled
+            >
+            <% } %>
+              <span class="cp-code"><%= cp.code %></span>
+              <span class="cp-title"><%= cp.title %></span>
+              <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
+              <% if (hasCard) { %><span class="cp-arrow">&#8250;</span><% } %>
+            </button>
+          <% } %>
+        </div>
+      <% } %>
+
+      <p class="no-results" id="no-results" style="display:none">No checkpoints match your search.</p>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script>
+    const drawer      = document.getElementById('card-drawer');
+    const drawerCode  = document.getElementById('drawer-code');
+    const drawerTitle = document.getElementById('drawer-title');
+    const drawerBody  = document.getElementById('drawer-body');
+    const searchInput = document.getElementById('search-input');
+    const noResults   = document.getElementById('no-results');
+
+    let activeCode = null;
+
+    async function openCard(code) {
+      if (activeCode === code) { closeDrawer(); return; }
+
+      // Mark active row
+      document.querySelectorAll('.checkpoint-item').forEach(el => el.classList.remove('active'));
+      const btn = document.querySelector(`[data-code="${code}"]`);
+      if (btn) btn.classList.add('active');
+
+      // Open drawer immediately with loading state
+      activeCode = code;
+      drawerCode.textContent = code;
+      drawerTitle.textContent = btn ? btn.dataset.title : '';
+      drawerBody.innerHTML = '<p class="drawer-loading">Loading…</p>';
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+
+      try {
+        const res = await fetch(`/cards/data/${code}`);
+        if (!res.ok) throw new Error('Card not found');
+        const card = await res.json();
+
+        drawerCode.textContent  = card.code;
+        drawerTitle.textContent = card.title;
+
+        if (card.body_md) {
+          const html = marked.parse(card.body_md);
+          drawerBody.innerHTML = `<div class="card-md">${html}</div>`;
+        } else {
+          drawerBody.innerHTML = '<p class="drawer-loading">This card has no content yet.</p>';
+        }
+      } catch (err) {
+        drawerBody.innerHTML = '<p class="drawer-error">Could not load this card. Try again.</p>';
+      }
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+      document.querySelectorAll('.checkpoint-item').forEach(el => el.classList.remove('active'));
+      activeCode = null;
+    }
+
+    // Keyboard: Escape closes drawer
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+    });
+
+    // Search: filter checkpoint rows by title, code, and keywords
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      let visible = 0;
+
+      document.querySelectorAll('.checkpoint-item').forEach(btn => {
+        const haystack = [
+          btn.dataset.code,
+          btn.dataset.title,
+          btn.dataset.keywords,
+        ].join(' ').toLowerCase();
+
+        const show = !q || haystack.includes(q);
+        btn.classList.toggle('hidden', !show);
+        if (show) visible++;
+      });
+
+      noResults.style.display = visible === 0 ? '' : 'none';
+
+      // Hide tier headings when all their items are hidden
+      document.querySelectorAll('.tier-group').forEach(group => {
+        const anyVisible = [...group.querySelectorAll('.checkpoint-item')]
+          .some(btn => !btn.classList.contains('hidden'));
+        group.style.display = anyVisible ? '' : 'none';
+      });
+
+      // Hide extension divider if all extension items are hidden
+      const extDivider = document.querySelector('.extension-divider');
+      if (extDivider) {
+        const extGroup = document.querySelector('[data-tier="extension"]');
+        extDivider.style.display = extGroup && extGroup.style.display !== 'none' ? '' : 'none';
+      }
+    });
+  </script>
+</body>
+</html>
