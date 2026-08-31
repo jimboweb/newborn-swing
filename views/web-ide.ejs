@@ -353,12 +353,12 @@
           : '';
       });
 
-      // Inline <script src="..."></script> → <script>
+      // Inline <script src="..."><\/script> → <script>
       html = html.replace(/<script\b([^>]*?)><\/script>/gi, (tag, attrs) => {
         const m = attrs.match(/src=["']([^"']+)["']/i);
         if (!m) return tag;
         return (m[1] in fileMap)
-          ? `<script>\n${fileMap[m[1]]}\n</script>`
+          ? `<script>\n${fileMap[m[1]]}\n<\/script>`
           : '';
       });
 
