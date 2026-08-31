@@ -312,6 +312,30 @@
     .doc-input:focus { outline: none; border-color: #2980b9; }
     .doc-hint { font-size: 0.75rem; color: #888; margin-bottom: 0.6rem; }
 
+    /* ── Video embed ── */
+    .card-video {
+      position: relative; padding-bottom: 56.25%; height: 0;
+      margin-bottom: 1rem; border-radius: 6px; overflow: hidden; background: #000;
+    }
+    .card-video iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    .card-video-link { margin-bottom: 0.75rem; }
+    .card-video-link a {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      color: #2980b9; text-decoration: none; font-size: 0.9rem; font-weight: 600;
+      border: 1px solid #2980b9; border-radius: 4px; padding: 0.35rem 0.75rem;
+    }
+    .card-video-link a:hover { background: #f0f7ff; }
+    .card-md img { max-width: 100%; border-radius: 4px; margin: 0.5rem 0; display: block; }
+    .card-md a { color: #2980b9; }
+
+    /* ── Teacher edit link ── */
+    .edit-card-link {
+      display: inline-block; margin-bottom: 0.75rem;
+      font-size: 0.78rem; color: #888; text-decoration: none;
+      border: 1px solid #ddd; border-radius: 4px; padding: 0.2rem 0.6rem;
+    }
+    .edit-card-link:hover { background: #f5f5f5; color: #333; }
+
     /* No-results message */
     .no-results {
       color: #888;
@@ -481,6 +505,20 @@
     <% } else { %>
     const progressMap = null;
     <% } %>
+    const isTeacher = <%= user.role === 'teacher' %>;
+
+    function toEmbedUrl(url) {
+      if (!url) return null;
+      let m = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+      if (m) return `https://www.youtube.com/embed/${m[1]}`;
+      m = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+      if (m) return `https://www.youtube.com/embed/${m[1]}`;
+      if (/youtube\.com\/embed\//.test(url)) return url;
+      m = url.match(/vimeo\.com\/(\d+)/);
+      if (m) return `https://player.vimeo.com/video/${m[1]}`;
+      if (/player\.vimeo\.com\/video\//.test(url)) return url;
+      return null;
+    }
 
     let activeCode = null;
 
@@ -627,6 +665,20 @@
         drawerTitle.textContent = card.title;
 
         let bodyHtml = '';
+
+        if (isTeacher) {
+          bodyHtml += `<a href="/admin/cards/${card.code}" class="edit-card-link">&#9998; Edit this card</a>`;
+        }
+
+        if (card.video_url) {
+          const embed = toEmbedUrl(card.video_url);
+          if (embed) {
+            bodyHtml += `<div class="card-video"><iframe src="${embed}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+          } else {
+            bodyHtml += `<div class="card-video-link"><a href="${card.video_url}" target="_blank" rel="noopener">&#9654; Watch video</a></div>`;
+          }
+        }
+
         if (card.body_md) bodyHtml += `<div class="card-md">${marked.parse(card.body_md)}</div>`;
         if (card.starter_json) {
           bodyHtml += `<button class="try-it-btn" onclick="tryCard('${card.code}')">Try it</button>`;

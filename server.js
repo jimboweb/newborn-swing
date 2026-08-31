@@ -47,6 +47,7 @@ app.use('/api', require('./routes/api'));
 app.use('/cards', require('./routes/cards'));
 app.use('/projects', require('./routes/projects'));
 app.use('/api/progress', require('./routes/progress'));
+app.use('/admin', require('./routes/admin'));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
