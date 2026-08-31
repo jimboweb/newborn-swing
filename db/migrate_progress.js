@@ -11,6 +11,8 @@ async function migrate() {
       PRIMARY KEY (student_id, checkpoint_id)
     )
   `);
+  await pool.query(`ALTER TABLE progress ADD COLUMN IF NOT EXISTS doc_url TEXT`);
+  await pool.query(`ALTER TABLE progress ADD COLUMN IF NOT EXISTS teacher_note TEXT`);
   console.log('Progress migration done.');
   await pool.end();
 }

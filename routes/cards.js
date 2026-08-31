@@ -17,12 +17,14 @@ router.get('/', requireAuth, async (req, res, next) => {
     let progress = {};
     if (req.user.role === 'student') {
       const prog = await pool.query(`
-        SELECT cp.code, p.state
+        SELECT cp.code, p.state, p.doc_url, p.teacher_note
         FROM progress p
         JOIN checkpoints cp ON cp.id = p.checkpoint_id
         WHERE p.student_id = $1
       `, [req.user.id]);
-      for (const row of prog.rows) progress[row.code] = row.state;
+      for (const row of prog.rows) {
+        progress[row.code] = { state: row.state, doc_url: row.doc_url, teacher_note: row.teacher_note };
+      }
     }
 
     res.render('cards', { checkpoints: rows, progress });

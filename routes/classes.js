@@ -88,7 +88,7 @@ router.get('/:id/grid', requireTeacher, async (req, res, next) => {
 
     const rows = await pool.query(`
       SELECT u.id AS student_id, u.name AS student_name,
-             cp.code, p.state
+             cp.code, p.state, p.doc_url, p.teacher_note
       FROM users u
       JOIN class_members cm ON cm.student_id = u.id
       CROSS JOIN checkpoints cp
@@ -97,7 +97,7 @@ router.get('/:id/grid', requireTeacher, async (req, res, next) => {
       ORDER BY u.name, cp.ordinal
     `, [req.params.id]);
 
-    // Build students array and progressMap[studentId][cpCode] = state
+    // Build students array and progressMap[studentId][cpCode] = { state, doc_url, teacher_note }
     const studentsMap = {};
     const progressMap = {};
     for (const row of rows.rows) {
@@ -105,7 +105,11 @@ router.get('/:id/grid', requireTeacher, async (req, res, next) => {
         studentsMap[row.student_id] = { id: row.student_id, name: row.student_name };
         progressMap[row.student_id] = {};
       }
-      progressMap[row.student_id][row.code] = row.state || 'not_started';
+      progressMap[row.student_id][row.code] = {
+        state: row.state || 'not_started',
+        doc_url: row.doc_url || null,
+        teacher_note: row.teacher_note || null,
+      };
     }
 
     res.render('teacher-grid', {

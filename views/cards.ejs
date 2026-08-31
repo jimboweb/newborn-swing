@@ -298,6 +298,19 @@
     .state-advance-btn:disabled { opacity: 0.5; cursor: default; }
     .state-waiting  { font-size: 0.85rem; color: #92400e; }
     .state-done     { font-size: 0.85rem; color: #065f46; font-weight: 600; }
+    .state-needs-work { font-size: 0.85rem; color: #9a3412; }
+    .teacher-note-box {
+      background: #fff7ed; border: 1px solid #fdba74; border-radius: 5px;
+      padding: 0.6rem 0.75rem; margin-bottom: 0.6rem;
+      font-size: 0.85rem; color: #9a3412; line-height: 1.5;
+    }
+    .teacher-note-label { font-weight: 700; margin-bottom: 0.2rem; }
+    .doc-input {
+      width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 0.85rem; margin-bottom: 0.4rem;
+    }
+    .doc-input:focus { outline: none; border-color: #2980b9; }
+    .doc-hint { font-size: 0.75rem; color: #888; margin-bottom: 0.6rem; }
 
     /* No-results message */
     .no-results {
@@ -374,7 +387,7 @@
               const hasCard = cp.card_id != null;
               const isFinish = cp.code === 'C08';
               const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
-              const cpState = progress[cp.code] || null;
+              const cpState = progress[cp.code] ? progress[cp.code].state : null;
             %>
             <% if (hasCard) { %>
             <button
@@ -401,6 +414,7 @@
               <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
               <% if (cpState === 'in_progress') { %><span class="state-badge state-in-progress">Started</span><% } %>
               <% if (cpState === 'self_checked') { %><span class="state-badge state-self-checked">Self-checked</span><% } %>
+              <% if (cpState === 'needs_work') { %><span class="state-badge" style="background:#fee2e2;color:#991b1b">Needs work</span><% } %>
               <% if (cpState === 'confirmed') { %><span class="state-badge state-confirmed">Confirmed ✓</span><% } %>
               <% if (hasCard && !cpState) { %><span class="cp-arrow">&#8250;</span><% } %>
             </button>
@@ -415,7 +429,7 @@
             <%
               const hasCard = cp.card_id != null;
               const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
-              const cpState = progress[cp.code] || null;
+              const cpState = progress[cp.code] ? progress[cp.code].state : null;
             %>
             <% if (hasCard) { %>
             <button
@@ -441,6 +455,7 @@
               <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
               <% if (cpState === 'in_progress') { %><span class="state-badge state-in-progress">Started</span><% } %>
               <% if (cpState === 'self_checked') { %><span class="state-badge state-self-checked">Self-checked</span><% } %>
+              <% if (cpState === 'needs_work') { %><span class="state-badge" style="background:#fee2e2;color:#991b1b">Needs work</span><% } %>
               <% if (cpState === 'confirmed') { %><span class="state-badge state-confirmed">Confirmed ✓</span><% } %>
               <% if (hasCard && !cpState) { %><span class="cp-arrow">&#8250;</span><% } %>
             </button>
@@ -471,27 +486,83 @@
 
     function stateFooterHtml(code) {
       if (!progressMap) return '';
-      const state = progressMap[code] || 'not_started';
+      const entry = progressMap[code] || { state: 'not_started', doc_url: null, teacher_note: null };
+      const { state, doc_url, teacher_note } = entry;
       const labels = {
-        not_started: 'Not started',
-        in_progress: 'Started',
-        self_checked: 'Self-checked',
-        confirmed: 'Confirmed',
+        not_started: 'Not started', in_progress: 'Started',
+        self_checked: 'Ready for review', needs_work: 'Needs work', confirmed: 'Confirmed',
       };
       let action = '';
       if (state === 'not_started') {
         action = `<button class="state-advance-btn" onclick="advanceState('${code}','in_progress')">Mark as started</button>`;
       } else if (state === 'in_progress') {
-        action = `<button class="state-advance-btn" onclick="advanceState('${code}','self_checked')">I've completed the self-check</button>`;
+        action = `<button class="state-advance-btn" onclick="showDocForm('${code}')">I've completed the self-check</button>`;
       } else if (state === 'self_checked') {
         action = `<p class="state-waiting">Ready for your teacher to check in.</p>`;
+      } else if (state === 'needs_work') {
+        const noteHtml = teacher_note
+          ? `<div class="teacher-note-box"><div class="teacher-note-label">From your teacher:</div>${escHtml(teacher_note)}</div>`
+          : '';
+        action = `${noteHtml}<button class="state-advance-btn" onclick="showDocForm('${code}','${escAttr(doc_url || '')}')">Update and resubmit</button>`;
       } else if (state === 'confirmed') {
         action = `<p class="state-done">&#10003; Confirmed by your teacher</p>`;
       }
       return `<div class="drawer-state">
-        <p class="drawer-state-label">Your status: <strong>${labels[state]}</strong></p>
+        <p class="drawer-state-label">Your status: <strong>${labels[state] || state}</strong></p>
         ${action}
       </div>`;
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function escAttr(s) {
+      return s.replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+    }
+
+    function showDocForm(code, existingUrl) {
+      const stateEl = drawerBody.querySelector('.drawer-state');
+      if (!stateEl) return;
+      stateEl.innerHTML = `
+        <p class="drawer-state-label">Paste your Google Doc link:</p>
+        <p class="doc-hint">Make sure sharing is set to "Anyone with the link."</p>
+        <input class="doc-input" id="doc-url-input" type="url"
+          placeholder="https://docs.google.com/..."
+          value="${escAttr(existingUrl || '')}">
+        <button class="state-advance-btn" onclick="submitSelfCheck('${code}')">Submit for review</button>
+        <button class="state-advance-btn" onclick="cancelDocForm('${code}')"
+          style="background:#fff;color:#666;border-color:#ccc;margin-top:0.3rem">Cancel</button>
+      `;
+      document.getElementById('doc-url-input').focus();
+    }
+
+    function cancelDocForm(code) {
+      const stateEl = drawerBody.querySelector('.drawer-state');
+      if (stateEl) stateEl.outerHTML = stateFooterHtml(code);
+    }
+
+    async function submitSelfCheck(code) {
+      const input = document.getElementById('doc-url-input');
+      const doc_url = input ? input.value.trim() : '';
+      if (!doc_url) { input && (input.style.borderColor = '#c0392b'); return; }
+
+      const btn = drawerBody.querySelector('.state-advance-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+      try {
+        const res = await fetch(`/api/progress/${code}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: 'self_checked', doc_url }),
+        });
+        if (!res.ok) throw new Error('Failed');
+        progressMap[code] = { state: 'self_checked', doc_url, teacher_note: null };
+        updateLadderBadge(code, 'self_checked');
+        const stateEl = drawerBody.querySelector('.drawer-state');
+        if (stateEl) stateEl.outerHTML = stateFooterHtml(code);
+      } catch {
+        if (btn) { btn.disabled = false; btn.textContent = 'Submit for review'; }
+        alert('Something went wrong. Please try again.');
+      }
     }
 
     async function advanceState(code, newState) {
@@ -504,14 +575,13 @@
           body: JSON.stringify({ state: newState }),
         });
         if (!res.ok) throw new Error('Failed');
-        progressMap[code] = newState;
-        // Refresh state badge on ladder row
+        if (!progressMap[code]) progressMap[code] = {};
+        progressMap[code].state = newState;
         updateLadderBadge(code, newState);
-        // Re-render state footer
         const stateEl = drawerBody.querySelector('.drawer-state');
         if (stateEl) stateEl.outerHTML = stateFooterHtml(code);
       } catch {
-        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Try again'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Try again'; }
       }
     }
 
@@ -523,6 +593,8 @@
         row.insertAdjacentHTML('beforeend', '<span class="state-badge state-in-progress">Started</span>');
       } else if (state === 'self_checked') {
         row.insertAdjacentHTML('beforeend', '<span class="state-badge state-self-checked">Self-checked</span>');
+      } else if (state === 'needs_work') {
+        row.insertAdjacentHTML('beforeend', '<span class="state-badge" style="background:#fee2e2;color:#991b1b">Needs work</span>');
       } else if (state === 'confirmed') {
         row.insertAdjacentHTML('beforeend', '<span class="state-badge state-confirmed">Confirmed ✓</span>');
       } else {

@@ -26,73 +26,96 @@
     .page-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
     .page-sub { font-size: 0.85rem; color: #888; margin-bottom: 1.25rem; }
 
-    /* ── Legend ── */
-    .legend {
-      display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;
-      font-size: 0.78rem;
-    }
+    .legend { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; font-size: 0.78rem; }
     .legend-item { display: flex; align-items: center; gap: 0.35rem; }
-    .legend-dot {
-      width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
-    }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
-    /* ── Grid wrapper ── */
     .grid-wrap { overflow-x: auto; }
 
     table { border-collapse: collapse; white-space: nowrap; }
     thead th {
-      background: #f0f0f0;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: #555;
-      padding: 0.45rem 0.5rem;
-      border: 1px solid #e0e0e0;
-      text-align: center;
-      min-width: 48px;
+      background: #f0f0f0; font-size: 0.72rem; font-weight: 700; color: #555;
+      padding: 0.45rem 0.5rem; border: 1px solid #e0e0e0;
+      text-align: center; min-width: 48px;
     }
     thead th.name-col { text-align: left; min-width: 160px; font-size: 0.78rem; }
     thead th.ext-col { color: #aaa; }
-    thead th.divider-col {
-      width: 8px; min-width: 8px; background: #e8e8e8; border: none; padding: 0;
-    }
+    thead th.divider-col { width: 8px; min-width: 8px; background: #e8e8e8; border: none; padding: 0; }
 
-    tbody tr:hover td { filter: brightness(0.96); }
-    tbody td {
-      border: 1px solid #e8e8e8;
-      padding: 0;
-    }
+    tbody tr:hover td { filter: brightness(0.97); }
+    tbody td { border: 1px solid #e8e8e8; padding: 0; }
     tbody td.name-cell {
-      padding: 0.45rem 0.75rem;
-      font-size: 0.88rem;
-      font-weight: 500;
-      background: #fff;
-      position: sticky;
-      left: 0;
-      border-right: 2px solid #d0d0d0;
+      padding: 0.45rem 0.75rem; font-size: 0.88rem; font-weight: 500;
+      background: #fff; border-right: 2px solid #d0d0d0;
     }
     tbody td.divider-col { background: #e8e8e8; border: none; padding: 0; }
 
-    /* ── State cells ── */
     .cell {
-      display: block;
-      width: 100%;
-      height: 36px;
-      border: none;
-      cursor: pointer;
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-align: center;
-      line-height: 36px;
+      display: block; width: 100%; height: 36px; border: none;
+      font-size: 0.75rem; font-weight: 700; text-align: center; line-height: 36px;
     }
-    .cell:focus-visible { outline: 2px solid #2980b9; outline-offset: -2px; }
+    .cell-clickable { cursor: pointer; }
+    .cell-clickable:focus-visible { outline: 2px solid #2980b9; outline-offset: -2px; }
 
-    .cell-not-started { background: #f5f5f5; color: #ccc; cursor: default; }
+    .cell-not-started { background: #f5f5f5; color: #ccc; }
     .cell-in-progress { background: #dbeafe; color: #1d4ed8; }
-    .cell-in-progress:hover { background: #bfdbfe; }
+    .cell-in-progress.cell-clickable:hover { background: #bfdbfe; }
     .cell-self-checked { background: #fef3c7; color: #92400e; }
-    .cell-self-checked:hover { background: #fde68a; }
+    .cell-self-checked.cell-clickable:hover { background: #fde68a; }
+    .cell-needs-work   { background: #fee2e2; color: #991b1b; }
+    .cell-needs-work.cell-clickable:hover { background: #fecaca; }
     .cell-confirmed    { background: #d1fae5; color: #065f46; }
-    .cell-confirmed:hover { background: #a7f3d0; }
+    .cell-confirmed.cell-clickable:hover { background: #a7f3d0; }
+
+    /* ── Review modal ── */
+    dialog {
+      border: none; border-radius: 8px; padding: 0;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+      max-width: 420px; width: 100%;
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.35); }
+    .modal-inner { padding: 1.25rem; }
+    .modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .modal-sub   { font-size: 0.82rem; color: #888; margin-bottom: 1rem; }
+    .modal-doc-row { margin-bottom: 1rem; }
+    .modal-doc-link {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.88rem; color: #2980b9; text-decoration: none;
+      border: 1px solid #2980b9; border-radius: 4px; padding: 0.35rem 0.75rem;
+    }
+    .modal-doc-link:hover { background: #f0f7ff; }
+    .modal-no-doc { font-size: 0.85rem; color: #aaa; font-style: italic; }
+    .modal-existing-note {
+      background: #fff7ed; border: 1px solid #fdba74; border-radius: 5px;
+      padding: 0.5rem 0.75rem; font-size: 0.85rem; color: #9a3412;
+      margin-bottom: 0.75rem; white-space: pre-wrap;
+    }
+    .modal-existing-note-label { font-weight: 700; font-size: 0.75rem; margin-bottom: 0.2rem; color: #92400e; }
+    .modal-actions-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .btn-confirm {
+      flex: 1; padding: 0.5rem; background: #059669; color: #fff;
+      border: none; border-radius: 5px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    }
+    .btn-confirm:hover { background: #047857; }
+    .modal-divider { border: none; border-top: 1px solid #e8e8e8; margin: 1rem 0; }
+    .modal-feedback-label { font-size: 0.82rem; font-weight: 600; color: #555; margin-bottom: 0.4rem; }
+    .modal-note-input {
+      width: 100%; border: 1px solid #ccc; border-radius: 4px;
+      padding: 0.5rem 0.6rem; font-size: 0.85rem; font-family: inherit;
+      resize: vertical; min-height: 80px; margin-bottom: 0.5rem;
+    }
+    .modal-note-input:focus { outline: none; border-color: #e97316; }
+    .modal-footer { display: flex; gap: 0.5rem; }
+    .btn-return {
+      flex: 1; padding: 0.5rem; background: #ea580c; color: #fff;
+      border: none; border-radius: 5px; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-return:hover { background: #c2410c; }
+    .btn-cancel {
+      padding: 0.5rem 1rem; background: #fff; color: #555;
+      border: 1px solid #ccc; border-radius: 5px; font-size: 0.88rem; cursor: pointer;
+    }
+    .btn-cancel:hover { background: #f5f5f5; }
 
     .empty { color: #888; font-style: italic; padding: 2rem 0; }
   </style>
@@ -108,12 +131,13 @@
 
   <div class="page">
     <div class="page-title">Progress Grid — <%= cls.name %></div>
-    <div class="page-sub">Click a cell to confirm it. Click a confirmed cell to revoke.</div>
+    <div class="page-sub">Click a cell to review or confirm. Click a confirmed cell to revoke.</div>
 
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:#f5f5f5;border:1px solid #ddd"></div> Not started</div>
       <div class="legend-item"><div class="legend-dot" style="background:#dbeafe"></div> In progress</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#fef3c7"></div> Self-checked</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fef3c7"></div> Ready for review</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fee2e2"></div> Needs work</div>
       <div class="legend-item"><div class="legend-dot" style="background:#d1fae5"></div> Confirmed</div>
     </div>
 
@@ -121,63 +145,58 @@
       <p class="empty">No students in this class yet. <a href="/classes/<%= cls.id %>">Add students</a> first.</p>
     <% } else { %>
       <%
-        const mainTrack  = checkpoints.filter(cp => cp.ordinal <= 8);
-        const extension  = checkpoints.filter(cp => cp.ordinal > 8);
+        const mainTrack = checkpoints.filter(cp => cp.ordinal <= 8);
+        const extension = checkpoints.filter(cp => cp.ordinal > 8);
       %>
       <div class="grid-wrap">
         <table id="grid">
           <thead>
             <tr>
               <th class="name-col">Student</th>
-              <% for (const cp of mainTrack) { %>
-                <th title="<%= cp.title %>"><%= cp.code %></th>
-              <% } %>
+              <% for (const cp of mainTrack) { %><th title="<%= cp.title %>"><%= cp.code %></th><% } %>
               <th class="divider-col"></th>
-              <% for (const cp of extension) { %>
-                <th class="ext-col" title="<%= cp.title %>"><%= cp.code %></th>
-              <% } %>
+              <% for (const cp of extension) { %><th class="ext-col" title="<%= cp.title %>"><%= cp.code %></th><% } %>
             </tr>
           </thead>
           <tbody>
             <% for (const student of students) { %>
               <tr>
                 <td class="name-cell"><%= student.name %></td>
-                <% for (const cp of mainTrack) { %>
+                <% for (const cp of [...mainTrack, ...extension]) { %>
                   <%
-                    const state = progressMap[student.id][cp.code] || 'not_started';
+                    const entry = progressMap[student.id][cp.code];
+                    const state    = entry.state;
+                    const doc_url  = entry.doc_url;
+                    const t_note   = entry.teacher_note;
+                    const isMain   = cp.ordinal <= 8;
+                    const cssClass = state.replace(/_/g, '-');
                   %>
+                  <% if (!isMain && cp === extension[0]) { %><td class="divider-col"></td><% } %>
                   <td>
                     <% if (state === 'not_started') { %>
                       <span class="cell cell-not-started" title="Not started">—</span>
+                    <% } else if (state === 'confirmed') { %>
+                      <button
+                        class="cell cell-confirmed cell-clickable"
+                        data-student="<%= student.id %>"
+                        data-name="<%= student.name %>"
+                        data-code="<%= cp.code %>"
+                        data-state="confirmed"
+                        onclick="revokeCell(this)"
+                        title="Confirmed — click to revoke"
+                      >✓</button>
                     <% } else { %>
                       <button
-                        class="cell cell-<%= state.replace('_','-') %>"
+                        class="cell cell-<%= cssClass %> cell-clickable"
                         data-student="<%= student.id %>"
+                        data-name="<%= student.name %>"
                         data-code="<%= cp.code %>"
                         data-state="<%= state %>"
-                        onclick="toggleCell(this)"
-                        title="<%= state.replace('_',' ') %>"
-                      ><%= state === 'in_progress' ? '…' : '✓' %></button>
-                    <% } %>
-                  </td>
-                <% } %>
-                <td class="divider-col"></td>
-                <% for (const cp of extension) { %>
-                  <%
-                    const state = progressMap[student.id][cp.code] || 'not_started';
-                  %>
-                  <td>
-                    <% if (state === 'not_started') { %>
-                      <span class="cell cell-not-started" title="Not started">—</span>
-                    <% } else { %>
-                      <button
-                        class="cell cell-<%= state.replace('_','-') %>"
-                        data-student="<%= student.id %>"
-                        data-code="<%= cp.code %>"
-                        data-state="<%= state %>"
-                        onclick="toggleCell(this)"
-                        title="<%= state.replace('_',' ') %>"
-                      ><%= state === 'in_progress' ? '…' : '✓' %></button>
+                        data-doc="<%= doc_url || '' %>"
+                        data-note="<%= t_note || '' %>"
+                        onclick="openModal(this)"
+                        title="<%= state.replace(/_/g,' ') %>"
+                      ><%= state === 'in_progress' ? '…' : state === 'self_checked' ? '✓' : '!' %></button>
                     <% } %>
                   </td>
                 <% } %>
@@ -189,32 +208,149 @@
     <% } %>
   </div>
 
+  <!-- Review modal -->
+  <dialog id="review-modal">
+    <div class="modal-inner">
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-sub" id="modal-sub"></div>
+
+      <div class="modal-doc-row" id="modal-doc-row"></div>
+      <div id="modal-existing-note-wrap"></div>
+
+      <div class="modal-actions-row">
+        <button class="btn-confirm" id="btn-confirm" onclick="confirmFromModal()">Confirm ✓</button>
+      </div>
+
+      <hr class="modal-divider">
+      <div class="modal-feedback-label">What's missing (send feedback to student):</div>
+      <textarea class="modal-note-input" id="modal-note-input" placeholder="e.g. Menu items need real prices. Alt text missing on the hero image."></textarea>
+      <div class="modal-footer">
+        <button class="btn-return" onclick="returnWithFeedback()">Return with feedback</button>
+        <button class="btn-cancel" onclick="document.getElementById('review-modal').close()">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
   <script>
-    async function toggleCell(btn) {
-      const studentId = btn.dataset.student;
-      const code      = btn.dataset.code;
-      const curState  = btn.dataset.state;
+    let modalStudentId = null;
+    let modalCode      = null;
+    let modalBtn       = null;
 
-      const newState = curState === 'confirmed' ? 'in_progress' : 'confirmed';
+    function openModal(btn) {
+      modalStudentId = btn.dataset.student;
+      modalCode      = btn.dataset.code;
+      modalBtn       = btn;
 
-      btn.disabled = true;
+      const name    = btn.dataset.name;
+      const state   = btn.dataset.state;
+      const doc     = btn.dataset.doc;
+      const note    = btn.dataset.note;
+
+      document.getElementById('modal-title').textContent = `${name} — ${modalCode}`;
+      document.getElementById('modal-sub').textContent   = `Current status: ${state.replace(/_/g,' ')}`;
+
+      const docRow = document.getElementById('modal-doc-row');
+      if (doc) {
+        docRow.innerHTML = `<a class="modal-doc-link" href="${escHtml(doc)}" target="_blank" rel="noopener">&#128196; Open Google Doc</a>`;
+      } else {
+        docRow.innerHTML = `<span class="modal-no-doc">No Google Doc submitted yet.</span>`;
+      }
+
+      const noteWrap = document.getElementById('modal-existing-note-wrap');
+      if (note) {
+        noteWrap.innerHTML = `<div class="modal-existing-note-label">Previous feedback you sent:</div>
+          <div class="modal-existing-note">${escHtml(note)}</div>`;
+        document.getElementById('modal-note-input').value = note;
+      } else {
+        noteWrap.innerHTML = '';
+        document.getElementById('modal-note-input').value = '';
+      }
+
+      document.getElementById('review-modal').showModal();
+    }
+
+    async function confirmFromModal() {
+      const btn = document.getElementById('btn-confirm');
+      btn.disabled = true; btn.textContent = 'Saving…';
       try {
-        const res = await fetch(`/api/progress/${studentId}/${code}`, {
+        const res = await fetch(`/api/progress/${modalStudentId}/${modalCode}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ state: newState }),
+          body: JSON.stringify({ state: 'confirmed' }),
         });
-        if (!res.ok) throw new Error('Failed');
+        if (!res.ok) throw new Error();
+        updateCell(modalBtn, 'confirmed');
+        document.getElementById('review-modal').close();
+      } catch {
+        alert('Could not update. Please try again.');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Confirm ✓';
+      }
+    }
 
-        btn.dataset.state = newState;
-        btn.className = `cell cell-${newState.replace('_', '-')}`;
-        btn.title = newState.replace('_', ' ');
-        btn.textContent = newState === 'in_progress' ? '…' : '✓';
+    async function returnWithFeedback() {
+      const note = document.getElementById('modal-note-input').value.trim();
+      if (!note) {
+        document.getElementById('modal-note-input').style.borderColor = '#c0392b';
+        return;
+      }
+      const btn = document.querySelector('.btn-return');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const res = await fetch(`/api/progress/${modalStudentId}/${modalCode}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: 'needs_work', teacher_note: note }),
+        });
+        if (!res.ok) throw new Error();
+        updateCell(modalBtn, 'needs_work', note);
+        document.getElementById('review-modal').close();
+      } catch {
+        alert('Could not update. Please try again.');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Return with feedback';
+      }
+    }
+
+    async function revokeCell(btn) {
+      if (!confirm(`Revoke confirmation for ${btn.dataset.name} — ${btn.dataset.code}?`)) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/progress/${btn.dataset.student}/${btn.dataset.code}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: 'in_progress' }),
+        });
+        if (!res.ok) throw new Error();
+        updateCell(btn, 'in_progress');
       } catch {
         alert('Could not update. Please try again.');
       } finally {
         btn.disabled = false;
       }
+    }
+
+    function updateCell(btn, newState, note) {
+      const cssClass = newState.replace(/_/g, '-');
+      const symbols  = { in_progress: '…', self_checked: '✓', needs_work: '!', confirmed: '✓' };
+
+      btn.dataset.state = newState;
+      if (note) btn.dataset.note = note;
+
+      if (newState === 'confirmed') {
+        btn.className = 'cell cell-confirmed cell-clickable';
+        btn.title = 'Confirmed — click to revoke';
+        btn.setAttribute('onclick', 'revokeCell(this)');
+      } else {
+        btn.className = `cell cell-${cssClass} cell-clickable`;
+        btn.title = newState.replace(/_/g, ' ');
+        btn.setAttribute('onclick', 'openModal(this)');
+      }
+      btn.textContent = symbols[newState] || '?';
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
   </script>
 </body>
