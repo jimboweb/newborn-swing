@@ -57,13 +57,7 @@ async function seed() {
     await pool.query(
       `INSERT INTO cards (checkpoint_id, body_md, keywords, video_url, video_seconds, transcript, starter_json)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (checkpoint_id) DO UPDATE
-         SET body_md      = EXCLUDED.body_md,
-             keywords     = EXCLUDED.keywords,
-             video_url    = EXCLUDED.video_url,
-             video_seconds = EXCLUDED.video_seconds,
-             transcript   = EXCLUDED.transcript,
-             starter_json = EXCLUDED.starter_json`,
+       ON CONFLICT (checkpoint_id) DO NOTHING`,
       [
         checkpointId,
         body,
