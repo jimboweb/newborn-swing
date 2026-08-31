@@ -75,4 +75,47 @@ router.post('/:id/members/:studentId/remove', requireTeacher, async (req, res, n
   } catch (err) { next(err); }
 });
 
+// GET /classes/:id/grid — teacher progress grid
+router.get('/:id/grid', requireTeacher, async (req, res, next) => {
+  try {
+    const cls = await pool.query(
+      'SELECT * FROM classes WHERE id = $1 AND created_by = $2',
+      [req.params.id, req.user.id]
+    );
+    if (!cls.rows.length) return res.status(404).send('Class not found');
+
+    const checkpoints = await pool.query('SELECT id, code, title, ordinal FROM checkpoints ORDER BY ordinal');
+
+    const rows = await pool.query(`
+      SELECT u.id AS student_id, u.name AS student_name,
+             cp.code, p.state
+      FROM users u
+      JOIN class_members cm ON cm.student_id = u.id
+      CROSS JOIN checkpoints cp
+      LEFT JOIN progress p ON p.student_id = u.id AND p.checkpoint_id = cp.id
+      WHERE cm.class_id = $1
+      ORDER BY u.name, cp.ordinal
+    `, [req.params.id]);
+
+    // Build students array and progressMap[studentId][cpCode] = state
+    const studentsMap = {};
+    const progressMap = {};
+    for (const row of rows.rows) {
+      if (!studentsMap[row.student_id]) {
+        studentsMap[row.student_id] = { id: row.student_id, name: row.student_name };
+        progressMap[row.student_id] = {};
+      }
+      progressMap[row.student_id][row.code] = row.state || 'not_started';
+    }
+
+    res.render('teacher-grid', {
+      user: req.user,
+      cls: cls.rows[0],
+      checkpoints: checkpoints.rows,
+      students: Object.values(studentsMap),
+      progressMap,
+    });
+  } catch (err) { next(err); }
+});
+
 module.exports = router;

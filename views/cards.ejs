@@ -256,6 +256,49 @@
       font-style: italic;
     }
 
+    /* ── Progress state badges ── */
+    .state-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.1rem 0.45rem;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .state-in-progress { background: #dbeafe; color: #1e40af; }
+    .state-self-checked { background: #fef3c7; color: #92400e; }
+    .state-confirmed    { background: #d1fae5; color: #065f46; }
+
+    /* ── Drawer state footer ── */
+    .drawer-state {
+      border-top: 1px solid #e8e8e8;
+      padding: 0.9rem 0 0.2rem;
+      margin-top: 1.25rem;
+    }
+    .drawer-state-label {
+      font-size: 0.78rem;
+      color: #888;
+      margin-bottom: 0.5rem;
+    }
+    .drawer-state-label strong { color: #333; }
+    .state-advance-btn {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 1rem;
+      border: 1px solid #2980b9;
+      border-radius: 5px;
+      background: #fff;
+      color: #2980b9;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .state-advance-btn:hover { background: #f0f7ff; }
+    .state-advance-btn:disabled { opacity: 0.5; cursor: default; }
+    .state-waiting  { font-size: 0.85rem; color: #92400e; }
+    .state-done     { font-size: 0.85rem; color: #065f46; font-weight: 600; }
+
     /* No-results message */
     .no-results {
       color: #888;
@@ -331,6 +374,7 @@
               const hasCard = cp.card_id != null;
               const isFinish = cp.code === 'C08';
               const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
+              const cpState = progress[cp.code] || null;
             %>
             <% if (hasCard) { %>
             <button
@@ -355,7 +399,10 @@
               <span class="cp-title"><%= cp.title %></span>
               <% if (isFinish) { %><span class="cp-finish">Finish line</span><% } %>
               <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
-              <% if (hasCard) { %><span class="cp-arrow">&#8250;</span><% } %>
+              <% if (cpState === 'in_progress') { %><span class="state-badge state-in-progress">Started</span><% } %>
+              <% if (cpState === 'self_checked') { %><span class="state-badge state-self-checked">Self-checked</span><% } %>
+              <% if (cpState === 'confirmed') { %><span class="state-badge state-confirmed">Confirmed ✓</span><% } %>
+              <% if (hasCard && !cpState) { %><span class="cp-arrow">&#8250;</span><% } %>
             </button>
           <% } %>
         </div>
@@ -368,6 +415,7 @@
             <%
               const hasCard = cp.card_id != null;
               const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
+              const cpState = progress[cp.code] || null;
             %>
             <% if (hasCard) { %>
             <button
@@ -391,7 +439,10 @@
               <span class="cp-code"><%= cp.code %></span>
               <span class="cp-title"><%= cp.title %></span>
               <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
-              <% if (hasCard) { %><span class="cp-arrow">&#8250;</span><% } %>
+              <% if (cpState === 'in_progress') { %><span class="state-badge state-in-progress">Started</span><% } %>
+              <% if (cpState === 'self_checked') { %><span class="state-badge state-self-checked">Self-checked</span><% } %>
+              <% if (cpState === 'confirmed') { %><span class="state-badge state-confirmed">Confirmed ✓</span><% } %>
+              <% if (hasCard && !cpState) { %><span class="cp-arrow">&#8250;</span><% } %>
             </button>
           <% } %>
         </div>
@@ -410,7 +461,74 @@
     const searchInput = document.getElementById('search-input');
     const noResults   = document.getElementById('no-results');
 
+    <% if (user.role === 'student') { %>
+    let progressMap = <%- JSON.stringify(progress).replace(/<\//g, '<\\/') %>;
+    <% } else { %>
+    const progressMap = null;
+    <% } %>
+
     let activeCode = null;
+
+    function stateFooterHtml(code) {
+      if (!progressMap) return '';
+      const state = progressMap[code] || 'not_started';
+      const labels = {
+        not_started: 'Not started',
+        in_progress: 'Started',
+        self_checked: 'Self-checked',
+        confirmed: 'Confirmed',
+      };
+      let action = '';
+      if (state === 'not_started') {
+        action = `<button class="state-advance-btn" onclick="advanceState('${code}','in_progress')">Mark as started</button>`;
+      } else if (state === 'in_progress') {
+        action = `<button class="state-advance-btn" onclick="advanceState('${code}','self_checked')">I've completed the self-check</button>`;
+      } else if (state === 'self_checked') {
+        action = `<p class="state-waiting">Ready for your teacher to check in.</p>`;
+      } else if (state === 'confirmed') {
+        action = `<p class="state-done">&#10003; Confirmed by your teacher</p>`;
+      }
+      return `<div class="drawer-state">
+        <p class="drawer-state-label">Your status: <strong>${labels[state]}</strong></p>
+        ${action}
+      </div>`;
+    }
+
+    async function advanceState(code, newState) {
+      const btn = drawerBody.querySelector('.state-advance-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+      try {
+        const res = await fetch(`/api/progress/${code}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: newState }),
+        });
+        if (!res.ok) throw new Error('Failed');
+        progressMap[code] = newState;
+        // Refresh state badge on ladder row
+        updateLadderBadge(code, newState);
+        // Re-render state footer
+        const stateEl = drawerBody.querySelector('.drawer-state');
+        if (stateEl) stateEl.outerHTML = stateFooterHtml(code);
+      } catch {
+        if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Try again'; }
+      }
+    }
+
+    function updateLadderBadge(code, state) {
+      const row = document.querySelector(`[data-code="${code}"]`);
+      if (!row) return;
+      row.querySelectorAll('.state-badge, .cp-arrow').forEach(el => el.remove());
+      if (state === 'in_progress') {
+        row.insertAdjacentHTML('beforeend', '<span class="state-badge state-in-progress">Started</span>');
+      } else if (state === 'self_checked') {
+        row.insertAdjacentHTML('beforeend', '<span class="state-badge state-self-checked">Self-checked</span>');
+      } else if (state === 'confirmed') {
+        row.insertAdjacentHTML('beforeend', '<span class="state-badge state-confirmed">Confirmed ✓</span>');
+      } else {
+        row.insertAdjacentHTML('beforeend', '<span class="cp-arrow">›</span>');
+      }
+    }
 
     async function openCard(code) {
       if (activeCode === code) { closeDrawer(); return; }
@@ -441,6 +559,7 @@
         if (card.starter_json) {
           bodyHtml += `<button class="try-it-btn" onclick="tryCard('${card.code}')">Try it</button>`;
         }
+        bodyHtml += stateFooterHtml(code);
         drawerBody.innerHTML = bodyHtml || '<p class="drawer-loading">This card has no content yet.</p>';
       } catch (err) {
         drawerBody.innerHTML = '<p class="drawer-error">Could not load this card. Try again.</p>';

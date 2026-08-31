@@ -33,7 +33,10 @@
     <span><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
   </nav>
 
-  <a href="/classes" class="back">← Back to Classes</a>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+    <a href="/classes" class="back">← Back to Classes</a>
+    <a href="/classes/<%= cls.id %>/grid" style="display:inline-block;padding:0.35rem 0.9rem;background:#16a085;color:#fff;border-radius:4px;font-size:0.85rem;text-decoration:none;font-weight:600">Progress Grid</a>
+  </div>
   <h2><%= cls.name %></h2>
 
   <% if (nonMembers.length > 0) { %>
