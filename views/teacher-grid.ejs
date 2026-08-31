@@ -145,8 +145,8 @@
       <p class="empty">No students in this class yet. <a href="/classes/<%= cls.id %>">Add students</a> first.</p>
     <% } else { %>
       <%
-        const mainTrack = checkpoints.filter(cp => cp.ordinal <= 8);
-        const extension = checkpoints.filter(cp => cp.ordinal > 8);
+        const mainTrack = checkpoints.filter(cp => !cp.is_extension);
+        const extension = checkpoints.filter(cp =>  cp.is_extension);
       %>
       <div class="grid-wrap">
         <table id="grid">
@@ -168,7 +168,7 @@
                     const state    = entry.state;
                     const doc_url  = entry.doc_url;
                     const t_note   = entry.teacher_note;
-                    const isMain   = cp.ordinal <= 8;
+                    const isMain   = !cp.is_extension;
                     const cssClass = state.replace(/_/g, '-');
                   %>
                   <% if (!isMain && cp === extension[0]) { %><td class="divider-col"></td><% } %>

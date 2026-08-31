@@ -84,7 +84,7 @@ router.get('/:id/grid', requireTeacher, async (req, res, next) => {
     );
     if (!cls.rows.length) return res.status(404).send('Class not found');
 
-    const checkpoints = await pool.query('SELECT id, code, title, ordinal FROM checkpoints ORDER BY ordinal');
+    const checkpoints = await pool.query('SELECT id, code, title, ordinal, is_extension FROM checkpoints ORDER BY ordinal');
 
     const rows = await pool.query(`
       SELECT u.id AS student_id, u.name AS student_name,

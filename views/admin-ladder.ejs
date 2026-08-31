@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ladder Editor — Newborn Swing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f7f7f8; min-height: 100vh; }
+
+    .topnav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 1.25rem; background: #fff; border-bottom: 1px solid #e0e0e0; gap: 1rem;
+    }
+    .topnav-left { display: flex; align-items: center; gap: 1rem; }
+    .topnav h1 { font-size: 1rem; font-weight: 700; }
+    .badge { background: #27ae60; color: #fff; padding: 0.15rem 0.45rem; border-radius: 4px; font-size: 0.72rem; }
+    .back-link { font-size: 0.85rem; color: #2980b9; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+    .topnav-right { font-size: 0.85rem; color: #555; }
+    .topnav-right a { color: #555; text-decoration: none; }
+    .topnav-right a:hover { text-decoration: underline; }
+
+    .page { max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .page-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .page-sub { font-size: 0.85rem; color: #888; margin-bottom: 1.75rem; }
+
+    .section-heading {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #888; margin-bottom: 0.5rem;
+      padding-bottom: 0.4rem; border-bottom: 1px solid #e4e4e4;
+    }
+    .section-wrap { margin-bottom: 2rem; }
+
+    /* ── Checkpoint rows ── */
+    .cp-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: #fff; border: 1px solid #e4e4e4; border-radius: 6px;
+      padding: 0.5rem 0.75rem; margin-bottom: 0.4rem;
+    }
+    .cp-row.saving { opacity: 0.6; }
+
+    .reorder-btns { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+    .reorder-btn {
+      background: none; border: 1px solid #ddd; border-radius: 3px;
+      width: 22px; height: 18px; font-size: 0.65rem; cursor: pointer; line-height: 1;
+      color: #888; display: flex; align-items: center; justify-content: center;
+    }
+    .reorder-btn:hover { background: #f0f0f0; color: #333; }
+    .reorder-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .cp-code {
+      font-size: 0.72rem; font-weight: 700; color: #888; letter-spacing: 0.06em;
+      min-width: 2.6rem; flex-shrink: 0;
+    }
+    .cp-title-input {
+      flex: 1; border: 1px solid transparent; border-radius: 4px;
+      padding: 0.25rem 0.4rem; font-size: 0.92rem; font-weight: 600; color: #111;
+      background: transparent; font-family: inherit;
+    }
+    .cp-title-input:hover { border-color: #ddd; }
+    .cp-title-input:focus { outline: none; border-color: #2980b9; background: #fff; }
+
+    .tier-select {
+      border: 1px solid #ddd; border-radius: 4px; padding: 0.2rem 0.35rem;
+      font-size: 0.78rem; color: #555; background: #fff; cursor: pointer;
+      flex-shrink: 0;
+    }
+    .tier-select:focus { outline: none; border-color: #2980b9; }
+
+    .move-btn {
+      font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px;
+      border: 1px solid #ccc; background: #fff; color: #555; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .move-btn:hover { background: #f5f5f5; }
+
+    .del-btn {
+      font-size: 0.78rem; padding: 0.2rem 0.45rem; border-radius: 4px;
+      border: 1px solid #e0c0c0; background: #fff8f8; color: #c0392b;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .del-btn:hover { background: #fde8e8; }
+
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+      background: transparent;
+    }
+    .status-dot.saved  { background: #27ae60; }
+    .status-dot.error  { background: #e74c3c; }
+
+    /* ── Add new row ── */
+    .add-row {
+      display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;
+    }
+    .add-title-input {
+      flex: 1; border: 1px solid #ccc; border-radius: 4px;
+      padding: 0.35rem 0.5rem; font-size: 0.88rem; font-family: inherit;
+    }
+    .add-title-input:focus { outline: none; border-color: #2980b9; }
+    .add-tier-select {
+      border: 1px solid #ccc; border-radius: 4px; padding: 0.3rem 0.4rem;
+      font-size: 0.82rem; background: #fff; flex-shrink: 0;
+    }
+    .add-btn {
+      padding: 0.35rem 0.9rem; background: #2980b9; color: #fff;
+      border: none; border-radius: 4px; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .add-btn:hover { background: #2471a3; }
+    .add-btn:disabled { opacity: 0.6; cursor: default; }
+
+    .flash { font-size: 0.8rem; color: #e74c3c; margin-top: 0.3rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="topnav">
+    <div class="topnav-left">
+      <h1>Newborn Swing <span class="badge">Teacher</span></h1>
+      <a href="/cards" class="back-link">&#8592; Checkpoint Cards</a>
+    </div>
+    <span class="topnav-right"><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+
+  <div class="page">
+    <div class="page-title">Ladder Editor</div>
+    <div class="page-sub">Edit titles, reorder with the arrows, or add/remove checkpoints. Changes save automatically.</div>
+
+    <%
+      const main      = checkpoints.filter(cp => !cp.is_extension);
+      const extension = checkpoints.filter(cp =>  cp.is_extension);
+      const TIERS = { 1: 'T1', 2: 'T2', 3: 'T3', 4: 'T4' };
+    %>
+
+    <!-- Main Track -->
+    <div class="section-wrap">
+      <div class="section-heading">Main Track</div>
+      <div id="main-list">
+        <% for (let i = 0; i < main.length; i++) { const cp = main[i]; %>
+          <div class="cp-row" id="row-<%= cp.id %>" data-id="<%= cp.id %>" data-section="main">
+            <div class="reorder-btns">
+              <button class="reorder-btn" title="Move up"   onclick="moveUp(this)"   <%= i === 0 ? 'disabled' : '' %>>▲</button>
+              <button class="reorder-btn" title="Move down" onclick="moveDown(this)" <%= i === main.length - 1 ? 'disabled' : '' %>>▼</button>
+            </div>
+            <span class="cp-code"><%= cp.code %></span>
+            <input class="cp-title-input" value="<%= cp.title %>" onchange="saveTitle(this, <%= cp.id %>)">
+            <select class="tier-select" onchange="saveTier(this, <%= cp.id %>)">
+              <% for (let t = 1; t <= 4; t++) { %>
+                <option value="<%= t %>" <%= cp.tier === t ? 'selected' : '' %>>T<%= t %></option>
+              <% } %>
+            </select>
+            <button class="move-btn" onclick="moveToExtension(<%= cp.id %>)">→ Going further</button>
+            <button class="del-btn"  onclick="deleteCheckpoint(<%= cp.id %>, '<%= cp.title.replace(/'/g, "\\'") %>')">✕</button>
+            <span class="status-dot" id="dot-<%= cp.id %>"></span>
+          </div>
+        <% } %>
+      </div>
+      <div class="add-row" id="add-main">
+        <input class="add-title-input" placeholder="New checkpoint title…" id="new-main-title">
+        <select class="add-tier-select" id="new-main-tier">
+          <option value="1">T1</option><option value="2">T2</option>
+          <option value="3">T3</option><option value="4">T4</option>
+        </select>
+        <button class="add-btn" onclick="addCheckpoint(false)">+ Add</button>
+      </div>
+      <div class="flash" id="flash-main"></div>
+    </div>
+
+    <!-- Going Further -->
+    <div class="section-wrap">
+      <div class="section-heading">Going Further</div>
+      <div id="extension-list">
+        <% for (let i = 0; i < extension.length; i++) { const cp = extension[i]; %>
+          <div class="cp-row" id="row-<%= cp.id %>" data-id="<%= cp.id %>" data-section="extension">
+            <div class="reorder-btns">
+              <button class="reorder-btn" title="Move up"   onclick="moveUp(this)"   <%= i === 0 ? 'disabled' : '' %>>▲</button>
+              <button class="reorder-btn" title="Move down" onclick="moveDown(this)" <%= i === extension.length - 1 ? 'disabled' : '' %>>▼</button>
+            </div>
+            <span class="cp-code"><%= cp.code %></span>
+            <input class="cp-title-input" value="<%= cp.title %>" onchange="saveTitle(this, <%= cp.id %>)">
+            <select class="tier-select" onchange="saveTier(this, <%= cp.id %>)">
+              <% for (let t = 1; t <= 4; t++) { %>
+                <option value="<%= t %>" <%= cp.tier === t ? 'selected' : '' %>>T<%= t %></option>
+              <% } %>
+            </select>
+            <button class="move-btn" onclick="moveToMain(<%= cp.id %>)">← Main track</button>
+            <button class="del-btn"  onclick="deleteCheckpoint(<%= cp.id %>, '<%= cp.title.replace(/'/g, "\\'") %>')">✕</button>
+            <span class="status-dot" id="dot-<%= cp.id %>"></span>
+          </div>
+        <% } %>
+      </div>
+      <div class="add-row" id="add-ext">
+        <input class="add-title-input" placeholder="New checkpoint title…" id="new-ext-title">
+        <select class="add-tier-select" id="new-ext-tier">
+          <option value="1">T1</option><option value="2">T2</option>
+          <option value="3">T3</option><option value="4">T4</option>
+        </select>
+        <button class="add-btn" onclick="addCheckpoint(true)">+ Add</button>
+      </div>
+      <div class="flash" id="flash-ext"></div>
+    </div>
+  </div>
+
+  <script>
+    function dot(id) { return document.getElementById(`dot-${id}`); }
+
+    function flashDot(id, ok) {
+      const el = dot(id);
+      if (!el) return;
+      el.className = `status-dot ${ok ? 'saved' : 'error'}`;
+      setTimeout(() => { el.className = 'status-dot'; }, 2000);
+    }
+
+    async function patch(id, body) {
+      const res = await fetch(`/admin/ladder/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+    }
+
+    async function saveTitle(input, id) {
+      try { await patch(id, { title: input.value }); flashDot(id, true); }
+      catch { flashDot(id, false); }
+    }
+
+    async function saveTier(select, id) {
+      try { await patch(id, { tier: select.value }); flashDot(id, true); }
+      catch { flashDot(id, false); }
+    }
+
+    async function reorderSection(listId) {
+      const list = document.getElementById(listId);
+      const ids = [...list.querySelectorAll('.cp-row')].map(r => parseInt(r.dataset.id, 10));
+      await fetch('/admin/ladder/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+    }
+
+    function refreshArrows(listEl) {
+      const rows = [...listEl.querySelectorAll('.cp-row')];
+      rows.forEach((row, i) => {
+        row.querySelectorAll('.reorder-btn')[0].disabled = (i === 0);
+        row.querySelectorAll('.reorder-btn')[1].disabled = (i === rows.length - 1);
+      });
+    }
+
+    function getListEl(btn) {
+      return btn.closest('.cp-row').parentElement;
+    }
+
+    async function moveUp(btn) {
+      const row  = btn.closest('.cp-row');
+      const list = getListEl(btn);
+      const prev = row.previousElementSibling;
+      if (!prev) return;
+      list.insertBefore(row, prev);
+      refreshArrows(list);
+      await reorderSection(list.id);
+    }
+
+    async function moveDown(btn) {
+      const row  = btn.closest('.cp-row');
+      const list = getListEl(btn);
+      const next = row.nextElementSibling;
+      if (!next) return;
+      list.insertBefore(next, row);
+      refreshArrows(list);
+      await reorderSection(list.id);
+    }
+
+    async function moveToExtension(id) {
+      try {
+        await patch(id, { is_extension: true });
+        const row = document.getElementById(`row-${id}`);
+        const extList = document.getElementById('extension-list');
+        extList.insertBefore(row, document.getElementById('add-ext'));
+
+        // Swap move button
+        row.querySelector('.move-btn').textContent = '← Main track';
+        row.querySelector('.move-btn').setAttribute('onclick', `moveToMain(${id})`);
+        row.dataset.section = 'extension';
+
+        refreshArrows(document.getElementById('main-list'));
+        refreshArrows(extList);
+        await reorderSection('extension-list');
+        await reorderSection('main-list');
+        flashDot(id, true);
+      } catch { flashDot(id, false); }
+    }
+
+    async function moveToMain(id) {
+      try {
+        await patch(id, { is_extension: false });
+        const row = document.getElementById(`row-${id}`);
+        const mainList = document.getElementById('main-list');
+        mainList.insertBefore(row, document.getElementById('add-main'));
+
+        row.querySelector('.move-btn').textContent = '→ Going further';
+        row.querySelector('.move-btn').setAttribute('onclick', `moveToExtension(${id})`);
+        row.dataset.section = 'main';
+
+        refreshArrows(mainList);
+        refreshArrows(document.getElementById('extension-list'));
+        await reorderSection('main-list');
+        await reorderSection('extension-list');
+        flashDot(id, true);
+      } catch { flashDot(id, false); }
+    }
+
+    async function addCheckpoint(isExtension) {
+      const titleInput = document.getElementById(isExtension ? 'new-ext-title' : 'new-main-title');
+      const tierSelect = document.getElementById(isExtension ? 'new-ext-tier' : 'new-main-tier');
+      const flashEl   = document.getElementById(isExtension ? 'flash-ext' : 'flash-main');
+      const title = titleInput.value.trim();
+      if (!title) { titleInput.focus(); return; }
+
+      const btn = titleInput.parentElement.querySelector('.add-btn');
+      btn.disabled = true;
+      flashEl.textContent = '';
+
+      try {
+        const res = await fetch('/admin/ladder/new', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, tier: tierSelect.value, is_extension: isExtension }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+
+        const cp = data.checkpoint;
+        const listId = isExtension ? 'extension-list' : 'main-list';
+        const insertBefore = document.getElementById(isExtension ? 'add-ext' : 'add-main');
+        const list = document.getElementById(listId);
+
+        const row = document.createElement('div');
+        row.className = 'cp-row';
+        row.id = `row-${cp.id}`;
+        row.dataset.id = cp.id;
+        row.dataset.section = isExtension ? 'extension' : 'main';
+        row.innerHTML = `
+          <div class="reorder-btns">
+            <button class="reorder-btn" title="Move up"   onclick="moveUp(this)">▲</button>
+            <button class="reorder-btn" title="Move down" onclick="moveDown(this)" disabled>▼</button>
+          </div>
+          <span class="cp-code">${cp.code}</span>
+          <input class="cp-title-input" value="${escHtml(cp.title)}" onchange="saveTitle(this, ${cp.id})">
+          <select class="tier-select" onchange="saveTier(this, ${cp.id})">
+            <option value="1" ${cp.tier===1?'selected':''}>T1</option>
+            <option value="2" ${cp.tier===2?'selected':''}>T2</option>
+            <option value="3" ${cp.tier===3?'selected':''}>T3</option>
+            <option value="4" ${cp.tier===4?'selected':''}>T4</option>
+          </select>
+          <button class="move-btn" onclick="${isExtension ? `moveToMain(${cp.id})` : `moveToExtension(${cp.id})`}">
+            ${isExtension ? '← Main track' : '→ Going further'}
+          </button>
+          <button class="del-btn" onclick="deleteCheckpoint(${cp.id}, '${escHtml(cp.title)}')">✕</button>
+          <span class="status-dot" id="dot-${cp.id}"></span>
+        `;
+        list.insertBefore(row, insertBefore);
+        refreshArrows(list);
+        titleInput.value = '';
+      } catch (err) {
+        flashEl.textContent = err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteCheckpoint(id, title) {
+      if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`/admin/ladder/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        const row = document.getElementById(`row-${id}`);
+        const list = row.parentElement;
+        row.remove();
+        refreshArrows(list);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>

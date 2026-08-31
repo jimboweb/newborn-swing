@@ -6,7 +6,7 @@ const { requireAuth } = require('../middleware/auth');
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
-      SELECT cp.id, cp.code, cp.title, cp.ordinal, cp.tier,
+      SELECT cp.id, cp.code, cp.title, cp.ordinal, cp.tier, cp.is_extension,
              c.id        AS card_id,
              c.keywords
       FROM checkpoints cp

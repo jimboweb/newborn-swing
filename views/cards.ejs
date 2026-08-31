@@ -355,6 +355,9 @@
     <div class="topnav-left">
       <h1>Newborn Swing</h1>
       <a href="/dashboard" class="back-link">&#8592; Dashboard</a>
+      <% if (user.role === 'teacher') { %>
+        <a href="/admin/ladder" class="back-link">&#9998; Ladder Editor</a>
+      <% } %>
     </div>
     <span class="topnav-right"><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
   </nav>
@@ -390,9 +393,9 @@
       </div>
 
       <%
-        // Group checkpoints: main track (ordinal 1-8) vs extension (ordinal 9+)
-        const mainTrack = checkpoints.filter(cp => cp.ordinal <= 8);
-        const extension = checkpoints.filter(cp => cp.ordinal > 8);
+        // Group checkpoints by is_extension flag (set via ladder editor)
+        const mainTrack = checkpoints.filter(cp => !cp.is_extension);
+        const extension = checkpoints.filter(cp =>  cp.is_extension);
 
         // Within main track, group by tier
         const tiers = {};
