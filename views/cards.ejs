@@ -170,6 +170,23 @@
       border-top: 1px solid #e0e0e0;
     }
 
+    /* ── Try it button ── */
+    .try-it-btn {
+      display: block;
+      margin-top: 1.25rem;
+      width: 100%;
+      padding: 0.6rem 1rem;
+      background: #2980b9;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .try-it-btn:hover:not(:disabled) { background: #2471a3; }
+    .try-it-btn:disabled { opacity: 0.6; cursor: default; }
+
     /* ── Checkpoint rows ── */
     .checkpoint-item {
       display: flex;
@@ -419,14 +436,28 @@
         drawerCode.textContent  = card.code;
         drawerTitle.textContent = card.title;
 
-        if (card.body_md) {
-          const html = marked.parse(card.body_md);
-          drawerBody.innerHTML = `<div class="card-md">${html}</div>`;
-        } else {
-          drawerBody.innerHTML = '<p class="drawer-loading">This card has no content yet.</p>';
+        let bodyHtml = '';
+        if (card.body_md) bodyHtml += `<div class="card-md">${marked.parse(card.body_md)}</div>`;
+        if (card.starter_json) {
+          bodyHtml += `<button class="try-it-btn" onclick="tryCard('${card.code}')">Try it</button>`;
         }
+        drawerBody.innerHTML = bodyHtml || '<p class="drawer-loading">This card has no content yet.</p>';
       } catch (err) {
         drawerBody.innerHTML = '<p class="drawer-error">Could not load this card. Try again.</p>';
+      }
+    }
+
+    async function tryCard(code) {
+      const btn = drawerBody.querySelector('.try-it-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Opening…'; }
+      try {
+        const res = await fetch(`/projects/try/${code}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        window.location.href = `/projects/${data.projectId}?card=${code}`;
+      } catch {
+        if (btn) { btn.disabled = false; btn.textContent = 'Try it'; }
+        alert('Something went wrong. Please try again.');
       }
     }
 

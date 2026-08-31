@@ -45,6 +45,7 @@ app.use('/classes', require('./routes/classes'));
 app.use('/sequences', require('./routes/sequences'));
 app.use('/api', require('./routes/api'));
 app.use('/cards', require('./routes/cards'));
+app.use('/projects', require('./routes/projects'));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

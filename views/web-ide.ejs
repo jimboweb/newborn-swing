@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= project.title %> — Newborn Swing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+
+    /* ── Header ── */
+    .ide-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0 0.75rem;
+      height: 40px;
+      background: #252526;
+      border-bottom: 1px solid #3e3e3e;
+      flex-shrink: 0;
+    }
+    .hdr-back {
+      text-decoration: none;
+      color: #9e9e9e;
+      font-size: 0.82rem;
+      border: 1px solid #3e3e3e;
+      border-radius: 3px;
+      padding: 0.2rem 0.55rem;
+      white-space: nowrap;
+    }
+    .hdr-back:hover { background: #3e3e3e; color: #d4d4d4; }
+    .hdr-title {
+      flex: 1;
+      font-size: 0.88rem;
+      color: #cccccc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hdr-save {
+      font-size: 0.75rem;
+      color: #6a9955;
+      min-width: 4rem;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .hdr-save.saving { color: #9e9e9e; }
+    .hdr-save.error  { color: #f44747; }
+    .hdr-btn {
+      background: none;
+      border: 1px solid #3e3e3e;
+      border-radius: 3px;
+      color: #d4d4d4;
+      font-size: 0.82rem;
+      padding: 0.2rem 0.6rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .hdr-btn:hover { background: #3e3e3e; }
+    .hdr-btn-run { background: #0e639c; border-color: #0e639c; color: #fff; }
+    .hdr-btn-run:hover { background: #1177bb; border-color: #1177bb; }
+
+    /* ── Tab bar ── */
+    .ide-tabs {
+      display: flex;
+      align-items: center;
+      background: #2d2d2d;
+      border-bottom: 1px solid #3e3e3e;
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #555 transparent;
+    }
+    .file-tab {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0 0.75rem;
+      height: 34px;
+      font-size: 0.82rem;
+      color: #9e9e9e;
+      background: none;
+      border: none;
+      border-right: 1px solid #3e3e3e;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .file-tab:hover { background: #3e3e3e; color: #d4d4d4; }
+    .file-tab.active { background: #1e1e1e; color: #d4d4d4; border-bottom: 2px solid #0e639c; }
+    .tab-del {
+      font-size: 0.95rem;
+      color: #666;
+      padding: 0 2px;
+      border-radius: 2px;
+      line-height: 1;
+      display: none;
+    }
+    .file-tab:hover .tab-del,
+    .file-tab.active .tab-del { display: inline; }
+    .tab-del:hover { color: #f44747; background: rgba(244,71,71,0.15); }
+    .tab-new {
+      padding: 0 0.75rem;
+      height: 34px;
+      font-size: 0.8rem;
+      color: #6a9955;
+      background: none;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .tab-new:hover { color: #9cdcfe; }
+
+    /* ── Main IDE area ── */
+    .ide-main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Card drawer (same logic as cards page) ── */
+    .card-drawer {
+      width: 0;
+      overflow: hidden;
+      background: #252526;
+      border-right: 1px solid #3e3e3e;
+      flex-shrink: 0;
+      transition: width 0.22s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-drawer.open { width: 380px; }
+    .drawer-inner {
+      width: 380px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .drawer-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem 0.6rem;
+      border-bottom: 1px solid #3e3e3e;
+      flex-shrink: 0;
+    }
+    .drawer-header-text { flex: 1; min-width: 0; }
+    .drawer-code { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; color: #9e9e9e; text-transform: uppercase; margin-bottom: 0.15rem; }
+    .drawer-title { font-size: 0.95rem; font-weight: 700; color: #d4d4d4; }
+    .drawer-close {
+      background: none; border: 1px solid #3e3e3e; border-radius: 3px;
+      color: #9e9e9e; cursor: pointer; font-size: 1rem; padding: 0 6px; height: 24px;
+    }
+    .drawer-close:hover { background: #3e3e3e; }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      scrollbar-width: thin;
+      scrollbar-color: #555 transparent;
+    }
+    .drawer-loading { color: #9e9e9e; font-size: 0.85rem; }
+    .drawer-error   { color: #f44747; font-size: 0.85rem; }
+
+    /* Markdown inside drawer (dark theme) */
+    .card-md h2 { font-size: 0.92rem; font-weight: 700; color: #d4d4d4; margin: 1.1rem 0 0.4rem; }
+    .card-md h2:first-child { margin-top: 0; }
+    .card-md h3 { font-size: 0.85rem; font-weight: 700; color: #cccccc; margin: 0.9rem 0 0.3rem; }
+    .card-md p  { font-size: 0.85rem; line-height: 1.6; color: #c0c0c0; margin-bottom: 0.6rem; }
+    .card-md ul, .card-md ol { padding-left: 1.3rem; margin-bottom: 0.6rem; }
+    .card-md li { font-size: 0.85rem; line-height: 1.6; color: #c0c0c0; margin-bottom: 0.2rem; }
+    .card-md code { background: #3a3a3a; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.83em; font-family: 'Courier New', monospace; color: #9cdcfe; }
+    .card-md pre  { background: #1e1e1e; border: 1px solid #3e3e3e; border-radius: 4px; padding: 0.6rem 0.75rem; overflow-x: auto; margin-bottom: 0.6rem; }
+    .card-md pre code { background: none; padding: 0; color: #d4d4d4; font-size: 0.82rem; }
+    .card-md strong { font-weight: 700; color: #d4d4d4; }
+    .card-md blockquote { border-left: 3px solid #555; padding-left: 0.6rem; color: #9e9e9e; margin-bottom: 0.6rem; }
+    .card-md hr { border: none; border-top: 1px solid #3e3e3e; margin: 0.75rem 0; }
+
+    /* Try it button */
+    .try-it-btn {
+      display: block;
+      margin-top: 1.25rem;
+      width: 100%;
+      padding: 0.55rem 1rem;
+      background: #0e639c;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .try-it-btn:hover:not(:disabled) { background: #1177bb; }
+    .try-it-btn:disabled { opacity: 0.6; cursor: default; }
+
+    /* ── Editor pane ── */
+    .editor-pane {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #monaco-container {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Preview pane ── */
+    .preview-pane {
+      flex: 1;
+      border-left: 1px solid #3e3e3e;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0.75rem;
+      height: 34px;
+      background: #2d2d2d;
+      border-bottom: 1px solid #3e3e3e;
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      color: #9e9e9e;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    #preview-frame {
+      flex: 1;
+      border: none;
+      background: #fff;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="ide-header">
+    <a href="/dashboard" class="hdr-back">&#8592; Dashboard</a>
+    <span class="hdr-title"><%= project.title %></span>
+    <span class="hdr-save" id="save-indicator"></span>
+    <% if (cardCode) { %>
+    <button class="hdr-btn" id="card-toggle-btn" onclick="toggleDrawer()">&#x1F4CB; Card</button>
+    <% } %>
+    <button class="hdr-btn hdr-btn-run" onclick="refreshPreview()">&#9654; Run</button>
+  </header>
+
+  <!-- Tab bar -->
+  <div class="ide-tabs" id="tab-bar"></div>
+
+  <!-- IDE main area -->
+  <div class="ide-main">
+
+    <!-- Card drawer -->
+    <aside class="card-drawer" id="card-drawer" aria-label="Checkpoint card" aria-hidden="true">
+      <div class="drawer-inner">
+        <div class="drawer-header">
+          <div class="drawer-header-text">
+            <div class="drawer-code" id="drawer-code"></div>
+            <div class="drawer-title" id="drawer-title"></div>
+          </div>
+          <button class="drawer-close" onclick="closeDrawer()" aria-label="Close card">&#x2715;</button>
+        </div>
+        <div class="drawer-body" id="drawer-body">
+          <p class="drawer-loading">Loading card…</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Monaco editor -->
+    <div class="editor-pane">
+      <div id="monaco-container"></div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-pane">
+      <div class="preview-header">
+        <span>Preview</span>
+      </div>
+      <iframe
+        id="preview-frame"
+        sandbox="allow-scripts"
+        title="Live preview of your web page"
+      ></iframe>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <script>
+    // ── Data from server ──
+    const projectId      = <%= project.id %>;
+    const initialFiles   = <%- filesJson %>;
+    const initialCardCode = <%- JSON.stringify(cardCode) %>;
+
+    // ── Runtime state ──
+    let files          = initialFiles.map(f => ({ ...f }));
+    let editor         = null;
+    let models         = {};   // fileId -> Monaco model
+    let activeFileId   = null;
+    let autosaveTimers = {};
+    let previewTimer   = null;
+    let watchdogTimer  = null;
+
+    // ── Utilities ──
+    function langFromPath(path) {
+      if (/\.html?$/i.test(path)) return 'html';
+      if (/\.css$/i.test(path))   return 'css';
+      if (/\.js$/i.test(path))    return 'javascript';
+      return 'plaintext';
+    }
+
+    function setSaveIndicator(state) {
+      const el = document.getElementById('save-indicator');
+      if (state === 'saving') { el.textContent = 'Saving…'; el.className = 'hdr-save saving'; }
+      else if (state === 'saved') { el.textContent = 'Saved ✓'; el.className = 'hdr-save'; }
+      else if (state === 'error') { el.textContent = 'Save failed'; el.className = 'hdr-save error'; }
+      else { el.textContent = ''; el.className = 'hdr-save'; }
+    }
+
+    // ── Preview ──
+    function buildPreviewDoc(fileMap) {
+      let html = fileMap['index.html'];
+      if (!html) {
+        return `<html><body style="font-family:sans-serif;padding:2rem;color:#666">
+          <p>Add an <code>index.html</code> file to see a preview here.</p>
+        </body></html>`;
+      }
+
+      // Inline <link rel="stylesheet" href="..."> → <style>
+      html = html.replace(/<link\b([^>]*)>/gi, (tag, attrs) => {
+        if (!/rel=["']stylesheet["']/i.test(attrs)) return tag;
+        const m = attrs.match(/href=["']([^"']+)["']/i);
+        if (!m) return '';
+        return (m[1] in fileMap)
+          ? `<style>\n${fileMap[m[1]]}\n</style>`
+          : '';
+      });
+
+      // Inline <script src="..."></script> → <script>
+      html = html.replace(/<script\b([^>]*?)><\/script>/gi, (tag, attrs) => {
+        const m = attrs.match(/src=["']([^"']+)["']/i);
+        if (!m) return tag;
+        return (m[1] in fileMap)
+          ? `<script>\n${fileMap[m[1]]}\n</script>`
+          : '';
+      });
+
+      // Watchdog heartbeat (fires after all scripts run)
+      const heartbeat = `<script>window.parent.postMessage({type:"preview-ready"},"*")<\/script>`;
+      html = /(<\/body>)/i.test(html)
+        ? html.replace(/<\/body>/i, heartbeat + '\n</body>')
+        : html + '\n' + heartbeat;
+
+      return html;
+    }
+
+    function refreshPreview() {
+      if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+      const fileMap = {};
+      for (const f of files) {
+        fileMap[f.path] = models[f.id] ? models[f.id].getValue() : f.content;
+      }
+      const html = buildPreviewDoc(fileMap);
+      const iframe = document.getElementById('preview-frame');
+
+      // Watchdog: if heartbeat not received in 5s, replace with timeout message
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+      iframe.srcdoc = html;
+      watchdogTimer = setTimeout(() => {
+        watchdogTimer = null;
+        iframe.srcdoc = `<html><body style="font-family:sans-serif;padding:2rem;color:#c0392b">
+          <h2 style="margin-bottom:0.5rem">Preview stopped</h2>
+          <p>A script might have an infinite loop. Fix your code and click <strong>Run</strong> to try again.</p>
+        </body></html>`;
+      }, 5000);
+    }
+
+    // Receive heartbeat from sandboxed iframe
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'preview-ready') {
+        if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
+      }
+    });
+
+    function schedulePreviewRefresh() {
+      if (previewTimer) clearTimeout(previewTimer);
+      previewTimer = setTimeout(refreshPreview, 300);
+    }
+
+    // ── Autosave ──
+    async function saveFile(fileId) {
+      const content = models[fileId].getValue();
+      try {
+        const res = await fetch(`/projects/${projectId}/files/${fileId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        setSaveIndicator('saved');
+        setTimeout(() => setSaveIndicator(''), 2000);
+      } catch {
+        setSaveIndicator('error');
+      }
+    }
+
+    function scheduleAutosave(fileId) {
+      if (autosaveTimers[fileId]) clearTimeout(autosaveTimers[fileId]);
+      setSaveIndicator('saving');
+      autosaveTimers[fileId] = setTimeout(() => saveFile(fileId), 2000);
+    }
+
+    // ── Tab management ──
+    function switchToFile(fileId) {
+      activeFileId = fileId;
+      editor.setModel(models[fileId]);
+      editor.focus();
+      document.querySelectorAll('.file-tab').forEach(t => {
+        t.classList.toggle('active', Number(t.dataset.fileId) === fileId);
+      });
+    }
+
+    function renderTabs() {
+      const bar = document.getElementById('tab-bar');
+      bar.innerHTML = '';
+
+      for (const f of files) {
+        const tab = document.createElement('button');
+        tab.className = 'file-tab' + (f.id === activeFileId ? ' active' : '');
+        tab.dataset.fileId = f.id;
+        tab.addEventListener('click', () => switchToFile(f.id));
+
+        const label = document.createTextNode(f.path);
+        tab.appendChild(label);
+
+        const del = document.createElement('span');
+        del.className = 'tab-del';
+        del.title = `Delete ${f.path}`;
+        del.setAttribute('role', 'button');
+        del.setAttribute('aria-label', `Delete ${f.path}`);
+        del.textContent = '×';
+        del.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteFile(f.id, f.path);
+        });
+        tab.appendChild(del);
+
+        bar.appendChild(tab);
+      }
+
+      const newBtn = document.createElement('button');
+      newBtn.className = 'tab-new';
+      newBtn.textContent = '+ New file';
+      newBtn.addEventListener('click', newFile);
+      bar.appendChild(newBtn);
+    }
+
+    async function newFile() {
+      const path = prompt('File name (e.g. about.html):');
+      if (!path || !path.trim()) return;
+      const trimmed = path.trim();
+
+      const res = await fetch(`/projects/${projectId}/files`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: trimmed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Could not create file');
+        return;
+      }
+      const newFileData = await res.json();
+      files.push(newFileData);
+
+      const model = monaco.editor.createModel('', langFromPath(newFileData.path));
+      models[newFileData.id] = model;
+      model.onDidChangeContent(() => {
+        scheduleAutosave(newFileData.id);
+        schedulePreviewRefresh();
+      });
+
+      renderTabs();
+      switchToFile(newFileData.id);
+    }
+
+    async function deleteFile(fileId, filePath) {
+      if (!confirm(`Delete ${filePath}? This cannot be undone.`)) return;
+
+      const res = await fetch(`/projects/${projectId}/files/${fileId}`, { method: 'DELETE' });
+      if (!res.ok) { alert('Could not delete file'); return; }
+
+      models[fileId].dispose();
+      delete models[fileId];
+      files = files.filter(f => f.id !== fileId);
+
+      if (activeFileId === fileId) {
+        const next = files[0];
+        activeFileId = next ? next.id : null;
+        if (next) switchToFile(next.id);
+        else editor.setModel(null);
+      }
+
+      renderTabs();
+      refreshPreview();
+    }
+
+    // ── Card drawer ──
+    let activeCardCode = null;
+
+    async function openCard(code) {
+      activeCardCode = code;
+      const drawer = document.getElementById('card-drawer');
+      document.getElementById('drawer-code').textContent = code;
+      document.getElementById('drawer-title').textContent = '';
+      document.getElementById('drawer-body').innerHTML = '<p class="drawer-loading">Loading…</p>';
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+
+      try {
+        const res = await fetch(`/cards/data/${code}`);
+        if (!res.ok) throw new Error('Not found');
+        const card = await res.json();
+
+        document.getElementById('drawer-code').textContent = card.code;
+        document.getElementById('drawer-title').textContent = card.title;
+
+        let bodyHtml = '';
+        if (card.body_md) bodyHtml += `<div class="card-md">${marked.parse(card.body_md)}</div>`;
+        if (card.starter_json) {
+          bodyHtml += `<button class="try-it-btn" onclick="tryCard('${card.code}')">Try it</button>`;
+        }
+        document.getElementById('drawer-body').innerHTML = bodyHtml || '<p class="drawer-loading">No content yet.</p>';
+      } catch {
+        document.getElementById('drawer-body').innerHTML = '<p class="drawer-error">Could not load this card.</p>';
+      }
+    }
+
+    function closeDrawer() {
+      activeCardCode = null;
+      const drawer = document.getElementById('card-drawer');
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+    }
+
+    function toggleDrawer() {
+      const drawer = document.getElementById('card-drawer');
+      if (drawer.classList.contains('open')) {
+        closeDrawer();
+      } else if (initialCardCode) {
+        openCard(initialCardCode);
+      }
+    }
+
+    async function tryCard(code) {
+      const btn = document.querySelector('.try-it-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Opening…'; }
+      try {
+        const res = await fetch(`/projects/try/${code}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        window.location.href = `/projects/${data.projectId}?card=${code}`;
+      } catch {
+        if (btn) { btn.disabled = false; btn.textContent = 'Try it'; }
+        alert('Something went wrong. Please try again.');
+      }
+    }
+
+    // Keyboard: Escape closes drawer
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        const drawer = document.getElementById('card-drawer');
+        if (drawer.classList.contains('open')) { e.preventDefault(); closeDrawer(); }
+      }
+    });
+
+    // ── Monaco setup ──
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      editor = monaco.editor.create(document.getElementById('monaco-container'), {
+        theme: 'vs-dark',
+        fontSize: 14,
+        minimap: { enabled: false },
+        automaticLayout: true,
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        // Start with empty model; will be set when tabs render
+        model: null,
+      });
+
+      // Create a Monaco model for each file
+      for (const f of files) {
+        const model = monaco.editor.createModel(f.content, langFromPath(f.path));
+        models[f.id] = model;
+        model.onDidChangeContent(() => {
+          scheduleAutosave(f.id);
+          schedulePreviewRefresh();
+        });
+      }
+
+      // Render tabs and activate first file (prefer index.html)
+      renderTabs();
+      const preferred = files.find(f => f.path === 'index.html') || files[0];
+      if (preferred) switchToFile(preferred.id);
+
+      // Initial preview (immediate, no debounce)
+      refreshPreview();
+
+      // Auto-open card drawer if we arrived from "Try it"
+      if (initialCardCode) openCard(initialCardCode);
+    });
+  </script>
+</body>
+</html>

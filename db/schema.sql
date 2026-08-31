@@ -91,6 +91,24 @@ CREATE TABLE IF NOT EXISTS sequence_assignments (
   student_id  INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS projects (
+  id         SERIAL PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind       TEXT NOT NULL DEFAULT 'restaurant',
+  title      TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS files (
+  id         SERIAL PRIMARY KEY,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  path       TEXT NOT NULL,
+  content    TEXT NOT NULL DEFAULT '',
+  is_binary  BOOLEAN NOT NULL DEFAULT false,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(project_id, path)
+);
+
 CREATE TABLE IF NOT EXISTS checkpoints (
   id      SERIAL PRIMARY KEY,
   code    TEXT UNIQUE NOT NULL,
