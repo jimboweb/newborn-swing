@@ -413,7 +413,7 @@
               const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
               const cpState = progress[cp.code] ? progress[cp.code].state : null;
             %>
-            <% if (hasCard) { %>
+            <% if (hasCard || user.role === 'teacher') { %>
             <button
               class="checkpoint-item"
               data-code="<%= cp.code %>"
@@ -455,7 +455,7 @@
               const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
               const cpState = progress[cp.code] ? progress[cp.code].state : null;
             %>
-            <% if (hasCard) { %>
+            <% if (hasCard || user.role === 'teacher') { %>
             <button
               class="checkpoint-item"
               data-code="<%= cp.code %>"
@@ -684,7 +684,12 @@
           bodyHtml += `<button class="try-it-btn" onclick="tryCard('${card.code}')">Try it</button>`;
         }
         bodyHtml += stateFooterHtml(code);
-        drawerBody.innerHTML = bodyHtml || '<p class="drawer-loading">This card has no content yet.</p>';
+        if (!bodyHtml.trim()) {
+          bodyHtml = isTeacher
+            ? `<a href="/admin/cards/${card.code}" class="edit-card-link">&#9998; Create card content</a>`
+            : '<p class="drawer-loading">This card has no content yet.</p>';
+        }
+        drawerBody.innerHTML = bodyHtml;
       } catch (err) {
         drawerBody.innerHTML = '<p class="drawer-error">Could not load this card. Try again.</p>';
       }
