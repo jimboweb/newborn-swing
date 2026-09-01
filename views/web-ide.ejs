@@ -257,6 +257,8 @@
     <% if (cardCode) { %>
     <button class="hdr-btn" id="card-toggle-btn" onclick="toggleDrawer()">&#x1F4CB; Card</button>
     <% } %>
+    <button class="hdr-btn" id="upload-btn" onclick="document.getElementById('img-file-input').click()" title="Upload an image and insert its URL">&#128444; Image</button>
+    <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="uploadImage(this)">
     <button class="hdr-btn hdr-btn-run" onclick="refreshPreview()">&#9654; Run</button>
   </header>
 
@@ -369,6 +371,35 @@
         : html + '\n' + heartbeat;
 
       return html;
+    }
+
+    async function uploadImage(input) {
+      const file = input.files[0];
+      if (!file) return;
+      input.value = '';
+      const btn = document.getElementById('upload-btn');
+      btn.textContent = 'Uploading…';
+      btn.disabled = true;
+      try {
+        const fd = new FormData();
+        fd.append('image', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        const tag = `<img src="${data.url}" alt="">`;
+        const editor = monaco.editor.getEditors()[0];
+        if (editor) {
+          editor.trigger('upload', 'type', { text: tag });
+        } else {
+          navigator.clipboard.writeText(data.url);
+          alert('Uploaded! URL copied to clipboard:\n' + data.url);
+        }
+      } catch (err) {
+        alert('Upload failed: ' + err.message);
+      } finally {
+        btn.textContent = '🖼 Image';
+        btn.disabled = false;
+      }
     }
 
     function refreshPreview() {

@@ -12,12 +12,14 @@
     "node": ">=20"
   },
   "dependencies": {
+    "cloudinary": "^2.11.0",
     "connect-pg-simple": "^9.0.1",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "js-yaml": "^5.4.1",
+    "multer": "^2.3.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.12.0"
