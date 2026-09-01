@@ -14,50 +14,11 @@ const RESTAURANT_STARTER = {
 </head>
 <body>
 
-  <h1>My Restaurant</h1>
-  <p>Welcome! We serve delicious food.</p>
-
-  <h2>Menu</h2>
-  <ul>
-    <li>Dish One — $0.00</li>
-    <li>Dish Two — $0.00</li>
-  </ul>
-
-  <h2>Hours</h2>
-  <p>Monday – Friday: 11 am – 9 pm</p>
-
-  <h2>About</h2>
-  <p>Write your restaurant's story here.</p>
-
 </body>
 </html>`,
 
-  'style.css': `body {
-  font-family: sans-serif;
-  margin: 0;
-  padding: 2rem;
-  background: #ffffff;
-  color: #222222;
-}
-
-h1 {
-  font-size: 2rem;
-  color: #333333;
-  margin-bottom: 0.25rem;
-}
-
-h2 {
-  font-size: 1.25rem;
-  color: #555555;
-  margin-top: 1.75rem;
-}
-
-ul {
-  padding-left: 1.5rem;
-}
-
-li {
-  margin-bottom: 0.4rem;
+  'style.css': `h1 {
+  color: darkblue;
 }`,
 };
 
