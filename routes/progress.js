@@ -12,8 +12,6 @@ router.patch('/:code', requireAuth, async (req, res, next) => {
   const { state, doc_url } = req.body;
   if (state !== 'in_progress' && state !== 'self_checked')
     return res.status(400).json({ error: 'Invalid state' });
-  if (state === 'self_checked' && !doc_url?.trim())
-    return res.status(400).json({ error: 'A Google Doc link is required' });
 
   try {
     const cp = await pool.query('SELECT id FROM checkpoints WHERE code = $1', [req.params.code.toUpperCase()]);
@@ -39,7 +37,7 @@ router.patch('/:code', requireAuth, async (req, res, next) => {
         VALUES ($1, $2, $3, $4, NULL, NOW())
         ON CONFLICT (student_id, checkpoint_id)
         DO UPDATE SET state = $3, doc_url = $4, teacher_note = NULL, updated_at = NOW()
-      `, [req.user.id, checkpointId, state, doc_url.trim()]);
+      `, [req.user.id, checkpointId, state, doc_url?.trim() || null]);
     } else {
       await pool.query(`
         INSERT INTO progress (student_id, checkpoint_id, state, updated_at)

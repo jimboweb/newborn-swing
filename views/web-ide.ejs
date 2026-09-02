@@ -251,14 +251,16 @@
 
   <!-- Header -->
   <header class="ide-header">
-    <a href="/dashboard" class="hdr-back">&#8592; Dashboard</a>
-    <span class="hdr-title"><%= project.title %></span>
+    <a href="javascript:history.back()" class="hdr-back">&#8592; Back</a>
+    <span class="hdr-title"><%= project.title %><% if (readonly) { %> <span style="color:#f9a825;font-size:0.75rem;font-weight:600;margin-left:0.5rem">READ-ONLY</span><% } %></span>
+    <% if (!readonly) { %>
     <span class="hdr-save" id="save-indicator"></span>
     <% if (cardCode) { %>
     <button class="hdr-btn" id="card-toggle-btn" onclick="toggleDrawer()">&#x1F4CB; Card</button>
     <% } %>
     <button class="hdr-btn" id="upload-btn" onclick="document.getElementById('img-file-input').click()" title="Upload an image and insert its URL">&#128444; Image</button>
     <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="uploadImage(this)">
+    <% } %>
     <button class="hdr-btn hdr-btn-run" onclick="refreshPreview()">&#9654; Run</button>
   </header>
 
@@ -310,6 +312,7 @@
     const projectId      = <%= project.id %>;
     const initialFiles   = <%- filesJson %>;
     const initialCardCode = <%- JSON.stringify(cardCode) %>;
+    const READONLY       = <%= readonly %>;
 
     // ── Runtime state ──
     let files          = initialFiles.map(f => ({ ...f }));
@@ -632,7 +635,7 @@
         automaticLayout: true,
         scrollBeyondLastLine: false,
         wordWrap: 'on',
-        // Start with empty model; will be set when tabs render
+        readOnly: READONLY,
         model: null,
       });
 
@@ -640,10 +643,12 @@
       for (const f of files) {
         const model = monaco.editor.createModel(f.content, langFromPath(f.path));
         models[f.id] = model;
-        model.onDidChangeContent(() => {
-          scheduleAutosave(f.id);
-          schedulePreviewRefresh();
-        });
+        if (!READONLY) {
+          model.onDidChangeContent(() => {
+            scheduleAutosave(f.id);
+            schedulePreviewRefresh();
+          });
+        }
       }
 
       // Render tabs and activate first file (prefer index.html)

@@ -77,7 +77,7 @@
     .modal-inner { padding: 1.25rem; }
     .modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
     .modal-sub   { font-size: 0.82rem; color: #888; margin-bottom: 1rem; }
-    .modal-doc-row { margin-bottom: 1rem; }
+    .modal-doc-row { margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .modal-doc-link {
       display: inline-flex; align-items: center; gap: 0.35rem;
       font-size: 0.88rem; color: #2980b9; text-decoration: none;
@@ -250,11 +250,11 @@
       document.getElementById('modal-sub').textContent   = `Current status: ${state.replace(/_/g,' ')}`;
 
       const docRow = document.getElementById('modal-doc-row');
+      let docHtml = `<a class="modal-doc-link" href="/projects/student/${escHtml(modalStudentId)}" target="_blank" rel="noopener">&#128187; View HTML project</a>`;
       if (doc) {
-        docRow.innerHTML = `<a class="modal-doc-link" href="${escHtml(doc)}" target="_blank" rel="noopener">&#128196; Open Google Doc</a>`;
-      } else {
-        docRow.innerHTML = `<span class="modal-no-doc">No Google Doc submitted yet.</span>`;
+        docHtml += ` <a class="modal-doc-link" href="${escHtml(doc)}" target="_blank" rel="noopener">&#128196; Open Google Doc</a>`;
       }
+      docRow.innerHTML = docHtml;
 
       const noteWrap = document.getElementById('modal-existing-note-wrap');
       if (note) {

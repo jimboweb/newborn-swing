@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireTeacher } = require('../middleware/auth');
 
 const RESTAURANT_STARTER = {
   'index.html': `<!DOCTYPE html>
@@ -105,6 +105,24 @@ router.post('/try/:cardCode', requireAuth, async (req, res, next) => {
   }
 });
 
+// GET /projects/student/:studentId — teacher read-only view of student's restaurant project
+router.get('/student/:studentId', requireTeacher, async (req, res, next) => {
+  try {
+    const proj = await pool.query(
+      `SELECT * FROM projects WHERE user_id = $1 AND kind = 'restaurant' ORDER BY created_at ASC LIMIT 1`,
+      [req.params.studentId]
+    );
+    if (!proj.rows.length) return res.status(404).send('This student has no restaurant project yet.');
+    const project = proj.rows[0];
+    const { rows } = await pool.query(
+      'SELECT id, path, content FROM files WHERE project_id = $1 ORDER BY path ASC',
+      [project.id]
+    );
+    const filesJson = JSON.stringify(rows).replace(/<\//g, '<\\/');
+    res.render('web-ide', { project, filesJson, cardCode: null, readonly: true });
+  } catch (err) { next(err); }
+});
+
 // GET /projects/:id — serve the web IDE
 router.get('/:id', requireAuth, requireProjectOwner, async (req, res, next) => {
   try {
@@ -118,6 +136,7 @@ router.get('/:id', requireAuth, requireProjectOwner, async (req, res, next) => {
       project: req.project,
       filesJson,
       cardCode: req.query.card || null,
+      readonly: false,
     });
   } catch (err) {
     next(err);
