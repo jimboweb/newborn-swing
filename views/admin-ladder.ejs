@@ -21,7 +21,7 @@
     .topnav-right a { color: #555; text-decoration: none; }
     .topnav-right a:hover { text-decoration: underline; }
 
-    .page { max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .page { max-width: 920px; margin: 0 auto; padding: 1.5rem 1rem; }
     .page-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; }
     .page-sub { font-size: 0.85rem; color: #888; margin-bottom: 1.75rem; }
 
@@ -32,13 +32,11 @@
     }
     .section-wrap { margin-bottom: 2rem; }
 
-    /* ── Checkpoint rows ── */
     .cp-row {
-      display: flex; align-items: center; gap: 0.5rem;
+      display: flex; align-items: center; gap: 0.4rem;
       background: #fff; border: 1px solid #e4e4e4; border-radius: 6px;
-      padding: 0.5rem 0.75rem; margin-bottom: 0.4rem;
+      padding: 0.45rem 0.65rem; margin-bottom: 0.35rem;
     }
-    .cp-row.saving { opacity: 0.6; }
 
     .reorder-btns { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
     .reorder-btn {
@@ -51,29 +49,31 @@
 
     .cp-code {
       font-size: 0.72rem; font-weight: 700; color: #888; letter-spacing: 0.06em;
-      min-width: 2.6rem; flex-shrink: 0;
+      min-width: 2.8rem; flex-shrink: 0;
     }
     .cp-title-input {
       flex: 1; border: 1px solid transparent; border-radius: 4px;
-      padding: 0.25rem 0.4rem; font-size: 0.92rem; font-weight: 600; color: #111;
-      background: transparent; font-family: inherit;
+      padding: 0.25rem 0.4rem; font-size: 0.88rem; font-weight: 600; color: #111;
+      background: transparent; font-family: inherit; min-width: 0;
     }
     .cp-title-input:hover { border-color: #ddd; }
     .cp-title-input:focus { outline: none; border-color: #2980b9; background: #fff; }
 
-    .tier-select {
-      border: 1px solid #ddd; border-radius: 4px; padding: 0.2rem 0.35rem;
-      font-size: 0.78rem; color: #555; background: #fff; cursor: pointer;
-      flex-shrink: 0;
+    .depth-select, .branch-select {
+      border: 1px solid #ddd; border-radius: 4px; padding: 0.2rem 0.3rem;
+      font-size: 0.78rem; color: #555; background: #fff; cursor: pointer; flex-shrink: 0;
     }
-    .tier-select:focus { outline: none; border-color: #2980b9; }
+    .depth-select { width: 70px; }
+    .branch-select { width: 94px; }
+    .depth-select:focus, .branch-select:focus { outline: none; border-color: #2980b9; }
 
-    .move-btn {
+    .prereq-btn {
       font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px;
-      border: 1px solid #ccc; background: #fff; color: #555; cursor: pointer;
-      white-space: nowrap; flex-shrink: 0;
+      border: 1px solid #b0c4de; background: #eef4fb; color: #2471a3;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
     }
-    .move-btn:hover { background: #f5f5f5; }
+    .prereq-btn:hover { background: #d6eaf8; }
+    .prereq-btn.has-prereqs { font-weight: 600; }
 
     .del-btn {
       font-size: 0.78rem; padding: 0.2rem 0.45rem; border-radius: 4px;
@@ -83,34 +83,76 @@
     .del-btn:hover { background: #fde8e8; }
 
     .status-dot {
-      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-      background: transparent;
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: transparent;
     }
-    .status-dot.saved  { background: #27ae60; }
-    .status-dot.error  { background: #e74c3c; }
+    .status-dot.saved { background: #27ae60; }
+    .status-dot.error { background: #e74c3c; }
 
-    /* ── Add new row ── */
     .add-row {
       display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;
     }
     .add-title-input {
       flex: 1; border: 1px solid #ccc; border-radius: 4px;
-      padding: 0.35rem 0.5rem; font-size: 0.88rem; font-family: inherit;
+      padding: 0.35rem 0.5rem; font-size: 0.85rem; font-family: inherit;
     }
     .add-title-input:focus { outline: none; border-color: #2980b9; }
-    .add-tier-select {
-      border: 1px solid #ccc; border-radius: 4px; padding: 0.3rem 0.4rem;
-      font-size: 0.82rem; background: #fff; flex-shrink: 0;
+    .add-depth-select {
+      border: 1px solid #ccc; border-radius: 4px; padding: 0.3rem 0.35rem;
+      font-size: 0.82rem; background: #fff; flex-shrink: 0; width: 70px;
     }
     .add-btn {
-      padding: 0.35rem 0.9rem; background: #2980b9; color: #fff;
+      padding: 0.35rem 0.85rem; background: #2980b9; color: #fff;
       border: none; border-radius: 4px; font-size: 0.85rem;
       font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;
     }
     .add-btn:hover { background: #2471a3; }
     .add-btn:disabled { opacity: 0.6; cursor: default; }
 
-    .flash { font-size: 0.8rem; color: #e74c3c; margin-top: 0.3rem; }
+    .flash { font-size: 0.8rem; color: #e74c3c; margin-top: 0.3rem; min-height: 1.2em; }
+
+    /* Prereq modal */
+    dialog {
+      border: none; border-radius: 8px; padding: 0;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-width: 520px; width: 100%;
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.35); }
+    .modal-inner { padding: 1.25rem 1.5rem; }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;
+    }
+    .modal-header strong { font-size: 0.95rem; }
+    .modal-close {
+      background: none; border: none; font-size: 1.1rem; cursor: pointer;
+      color: #888; padding: 0.15rem 0.35rem; border-radius: 4px;
+    }
+    .modal-close:hover { color: #333; background: #f0f0f0; }
+
+    #prereq-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 2rem; margin-bottom: 1rem; }
+    .prereq-tag {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      background: #eef4fb; border: 1px solid #b0c4de; border-radius: 12px;
+      padding: 0.15rem 0.5rem; font-size: 0.78rem; color: #2471a3;
+    }
+    .prereq-tag button {
+      background: none; border: none; cursor: pointer; color: #888;
+      font-size: 0.9rem; padding: 0; line-height: 1;
+    }
+    .prereq-tag button:hover { color: #e74c3c; }
+    .no-prereqs { font-size: 0.82rem; color: #aaa; align-self: center; }
+
+    .modal-add { display: flex; gap: 0.5rem; align-items: center; }
+    #prereq-add-select {
+      flex: 1; border: 1px solid #ccc; border-radius: 4px;
+      padding: 0.3rem 0.4rem; font-size: 0.82rem; font-family: inherit;
+    }
+    #prereq-add-select:focus { outline: none; border-color: #2980b9; }
+    .modal-add-btn {
+      padding: 0.3rem 0.85rem; background: #2980b9; color: #fff;
+      border: none; border-radius: 4px; font-size: 0.82rem;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .modal-add-btn:hover { background: #2471a3; }
+    #prereq-error { margin-top: 0.6rem; }
   </style>
 </head>
 <body>
@@ -125,84 +167,99 @@
 
   <div class="page">
     <div class="page-title">Ladder Editor</div>
-    <div class="page-sub">Edit titles, reorder with the arrows, or add/remove checkpoints. Changes save automatically.</div>
+    <div class="page-sub">Edit titles, reorder with arrows, set depth, move between branches, and manage prerequisites. Changes save automatically.</div>
 
     <%
-      const main      = checkpoints.filter(cp => !cp.is_extension);
-      const extension = checkpoints.filter(cp =>  cp.is_extension);
-      const TIERS = { 1: 'T1', 2: 'T2', 3: 'T3', 4: 'T4' };
+      const BRANCHES = ['trunk', 'visual', 'interactive', 'data'];
+      const BRANCH_LABEL = { trunk: 'Trunk', visual: 'Visual', interactive: 'Interactive', data: 'Data' };
+      const grouped = {};
+      for (const b of BRANCHES) grouped[b] = checkpoints.filter(cp => cp.branch === b);
+
+      function rowHtml(cp, i, total) {
+        const isTrunk = cp.branch === 'trunk';
+        const prereqs = cp.prereqs || [];
+        const prereqsAttr = JSON.stringify(prereqs).replace(/"/g, '&quot;');
+        const prereqCount = prereqs.length;
+        const titleAttr = (cp.title || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+
+        const depthSel = isTrunk ? '' : `<select class="depth-select" onchange="saveDepth(this,${cp.id})">
+            <option value="1"${cp.depth===1?' selected':''}>Start</option>
+            <option value="2"${cp.depth===2?' selected':''}>Deeper</option>
+            <option value="3"${cp.depth===3?' selected':''}>Deepest</option>
+          </select>`;
+
+        const branchOpts = BRANCHES.map(b =>
+          `<option value="${b}"${cp.branch===b?' selected':''}>${BRANCH_LABEL[b]}</option>`
+        ).join('');
+
+        const prereqLabel = prereqCount ? `Prereqs (${prereqCount})` : 'Prereqs';
+        const prereqClass = prereqCount ? 'prereq-btn has-prereqs' : 'prereq-btn';
+
+        return `<div class="cp-row" id="row-${cp.id}" data-id="${cp.id}" data-branch="${cp.branch}" data-title="${titleAttr}" data-prereqs="${prereqsAttr}">
+          <div class="reorder-btns">
+            <button class="reorder-btn" onclick="moveUp(this)"${i===0?' disabled':''}>▲</button>
+            <button class="reorder-btn" onclick="moveDown(this)"${i===total-1?' disabled':''}>▼</button>
+          </div>
+          <span class="cp-code">${cp.code}</span>
+          <input class="cp-title-input" value="${titleAttr}" onchange="saveTitle(this,${cp.id})">
+          ${depthSel}
+          <select class="branch-select" onchange="moveBranch(this,${cp.id})">${branchOpts}</select>
+          <button class="${prereqClass}" onclick="openPrereqModal(${cp.id})">${prereqLabel}</button>
+          <button class="del-btn" onclick="deleteCheckpoint(${cp.id})">✕</button>
+          <span class="status-dot" id="dot-${cp.id}"></span>
+        </div>`;
+      }
     %>
 
-    <!-- Main Track -->
+    <% for (const branch of BRANCHES) { %>
     <div class="section-wrap">
-      <div class="section-heading">Main Track</div>
-      <div id="main-list">
-        <% for (let i = 0; i < main.length; i++) { const cp = main[i]; %>
-          <div class="cp-row" id="row-<%= cp.id %>" data-id="<%= cp.id %>" data-section="main">
-            <div class="reorder-btns">
-              <button class="reorder-btn" title="Move up"   onclick="moveUp(this)"   <%= i === 0 ? 'disabled' : '' %>>▲</button>
-              <button class="reorder-btn" title="Move down" onclick="moveDown(this)" <%= i === main.length - 1 ? 'disabled' : '' %>>▼</button>
-            </div>
-            <span class="cp-code"><%= cp.code %></span>
-            <input class="cp-title-input" value="<%= cp.title %>" onchange="saveTitle(this, <%= cp.id %>)">
-            <select class="tier-select" onchange="saveTier(this, <%= cp.id %>)">
-              <% for (let t = 1; t <= 4; t++) { %>
-                <option value="<%= t %>" <%= cp.tier === t ? 'selected' : '' %>>T<%= t %></option>
-              <% } %>
-            </select>
-            <button class="move-btn" onclick="moveToExtension(<%= cp.id %>)">→ Going further</button>
-            <button class="del-btn"  onclick="deleteCheckpoint(<%= cp.id %>, '<%= cp.title.replace(/'/g, "\\'") %>')">✕</button>
-            <span class="status-dot" id="dot-<%= cp.id %>"></span>
-          </div>
+      <div class="section-heading"><%= BRANCH_LABEL[branch] %></div>
+      <div id="list-<%= branch %>">
+        <% const list = grouped[branch]; %>
+        <% for (let i = 0; i < list.length; i++) { %>
+          <%- rowHtml(list[i], i, list.length) %>
         <% } %>
       </div>
-      <div class="add-row" id="add-main">
-        <input class="add-title-input" placeholder="New checkpoint title…" id="new-main-title">
-        <select class="add-tier-select" id="new-main-tier">
-          <option value="1">T1</option><option value="2">T2</option>
-          <option value="3">T3</option><option value="4">T4</option>
+      <div class="add-row">
+        <input class="add-title-input" placeholder="New <%= branch %> checkpoint…" id="new-title-<%= branch %>">
+        <% if (branch !== 'trunk') { %>
+        <select class="add-depth-select" id="new-depth-<%= branch %>">
+          <option value="1">Start</option>
+          <option value="2">Deeper</option>
+          <option value="3">Deepest</option>
         </select>
-        <button class="add-btn" onclick="addCheckpoint(false)">+ Add</button>
-      </div>
-      <div class="flash" id="flash-main"></div>
-    </div>
-
-    <!-- Going Further -->
-    <div class="section-wrap">
-      <div class="section-heading">Going Further</div>
-      <div id="extension-list">
-        <% for (let i = 0; i < extension.length; i++) { const cp = extension[i]; %>
-          <div class="cp-row" id="row-<%= cp.id %>" data-id="<%= cp.id %>" data-section="extension">
-            <div class="reorder-btns">
-              <button class="reorder-btn" title="Move up"   onclick="moveUp(this)"   <%= i === 0 ? 'disabled' : '' %>>▲</button>
-              <button class="reorder-btn" title="Move down" onclick="moveDown(this)" <%= i === extension.length - 1 ? 'disabled' : '' %>>▼</button>
-            </div>
-            <span class="cp-code"><%= cp.code %></span>
-            <input class="cp-title-input" value="<%= cp.title %>" onchange="saveTitle(this, <%= cp.id %>)">
-            <select class="tier-select" onchange="saveTier(this, <%= cp.id %>)">
-              <% for (let t = 1; t <= 4; t++) { %>
-                <option value="<%= t %>" <%= cp.tier === t ? 'selected' : '' %>>T<%= t %></option>
-              <% } %>
-            </select>
-            <button class="move-btn" onclick="moveToMain(<%= cp.id %>)">← Main track</button>
-            <button class="del-btn"  onclick="deleteCheckpoint(<%= cp.id %>, '<%= cp.title.replace(/'/g, "\\'") %>')">✕</button>
-            <span class="status-dot" id="dot-<%= cp.id %>"></span>
-          </div>
         <% } %>
+        <button class="add-btn" onclick="addCheckpoint('<%= branch %>')">+ Add</button>
       </div>
-      <div class="add-row" id="add-ext">
-        <input class="add-title-input" placeholder="New checkpoint title…" id="new-ext-title">
-        <select class="add-tier-select" id="new-ext-tier">
-          <option value="1">T1</option><option value="2">T2</option>
-          <option value="3">T3</option><option value="4">T4</option>
-        </select>
-        <button class="add-btn" onclick="addCheckpoint(true)">+ Add</button>
-      </div>
-      <div class="flash" id="flash-ext"></div>
+      <div class="flash" id="flash-<%= branch %>"></div>
     </div>
+    <% } %>
   </div>
 
+  <!-- Prereq modal -->
+  <dialog id="prereq-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <strong id="modal-title">Prerequisites</strong>
+        <button class="modal-close" onclick="document.getElementById('prereq-modal').close()">✕</button>
+      </div>
+      <div id="prereq-tags"></div>
+      <div class="modal-add">
+        <select id="prereq-add-select"><option value="">— add prerequisite —</option></select>
+        <button class="modal-add-btn" onclick="addPrereq()">Add</button>
+      </div>
+      <div class="flash" id="prereq-error"></div>
+    </div>
+  </dialog>
+
   <script>
+    const allCheckpoints = <%- JSON.stringify(checkpoints.map(cp => ({ id: cp.id, code: cp.code, title: cp.title }))) %>;
+
+    let modalCheckpointId = null;
+    let modalPrereqs = [];
+
+    // ── Utilities ──
+
     function dot(id) { return document.getElementById(`dot-${id}`); }
 
     function flashDot(id, ok) {
@@ -211,6 +268,12 @@
       el.className = `status-dot ${ok ? 'saved' : 'error'}`;
       setTimeout(() => { el.className = 'status-dot'; }, 2000);
     }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── API helpers ──
 
     async function patch(id, body) {
       const res = await fetch(`/admin/ladder/${id}`, {
@@ -221,147 +284,155 @@
       if (!res.ok) throw new Error((await res.json()).error || 'Failed');
     }
 
-    async function saveTitle(input, id) {
-      try { await patch(id, { title: input.value }); flashDot(id, true); }
-      catch { flashDot(id, false); }
-    }
-
-    async function saveTier(select, id) {
-      try { await patch(id, { tier: select.value }); flashDot(id, true); }
-      catch { flashDot(id, false); }
-    }
-
-    async function reorderSection(listId) {
-      const list = document.getElementById(listId);
-      const ids = [...list.querySelectorAll('.cp-row')].map(r => parseInt(r.dataset.id, 10));
+    async function reorderSection(branch) {
+      const list = document.getElementById(`list-${branch}`);
+      const ids = [...list.querySelectorAll(':scope > .cp-row')].map(r => parseInt(r.dataset.id, 10));
       await fetch('/admin/ladder/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ branch, ids }),
       });
     }
 
+    // ── Arrow reorder ──
+
     function refreshArrows(listEl) {
-      const rows = [...listEl.querySelectorAll('.cp-row')];
+      const rows = [...listEl.querySelectorAll(':scope > .cp-row')];
       rows.forEach((row, i) => {
         row.querySelectorAll('.reorder-btn')[0].disabled = (i === 0);
         row.querySelectorAll('.reorder-btn')[1].disabled = (i === rows.length - 1);
       });
     }
 
-    function getListEl(btn) {
-      return btn.closest('.cp-row').parentElement;
-    }
-
     async function moveUp(btn) {
       const row  = btn.closest('.cp-row');
-      const list = getListEl(btn);
+      const list = row.parentElement;
       const prev = row.previousElementSibling;
-      if (!prev) return;
+      if (!prev || !prev.classList.contains('cp-row')) return;
       list.insertBefore(row, prev);
       refreshArrows(list);
-      await reorderSection(list.id);
+      await reorderSection(row.dataset.branch);
     }
 
     async function moveDown(btn) {
       const row  = btn.closest('.cp-row');
-      const list = getListEl(btn);
+      const list = row.parentElement;
       const next = row.nextElementSibling;
-      if (!next) return;
+      if (!next || !next.classList.contains('cp-row')) return;
       list.insertBefore(next, row);
       refreshArrows(list);
-      await reorderSection(list.id);
+      await reorderSection(row.dataset.branch);
     }
 
-    async function moveToExtension(id) {
+    // ── Field saves ──
+
+    async function saveTitle(input, id) {
+      document.getElementById(`row-${id}`).dataset.title = input.value;
+      try { await patch(id, { title: input.value }); flashDot(id, true); }
+      catch { flashDot(id, false); }
+    }
+
+    async function saveDepth(select, id) {
+      try { await patch(id, { depth: select.value }); flashDot(id, true); }
+      catch { flashDot(id, false); }
+    }
+
+    // ── Move between branches ──
+
+    async function moveBranch(select, id) {
+      const row = document.getElementById(`row-${id}`);
+      const oldBranch = row.dataset.branch;
+      const newBranch = select.value;
+      if (newBranch === oldBranch) return;
+
+      const depth = newBranch === 'trunk' ? null : 1;
       try {
-        await patch(id, { is_extension: true });
-        const row = document.getElementById(`row-${id}`);
-        const extList = document.getElementById('extension-list');
-        extList.insertBefore(row, document.getElementById('add-ext'));
+        await patch(id, { branch: newBranch, depth });
 
-        // Swap move button
-        row.querySelector('.move-btn').textContent = '← Main track';
-        row.querySelector('.move-btn').setAttribute('onclick', `moveToMain(${id})`);
-        row.dataset.section = 'extension';
+        const oldList = row.parentElement;
+        const newList = document.getElementById(`list-${newBranch}`);
 
-        refreshArrows(document.getElementById('main-list'));
-        refreshArrows(extList);
-        await reorderSection('extension-list');
-        await reorderSection('main-list');
+        const existingDepth = row.querySelector('.depth-select');
+        if (newBranch === 'trunk' && existingDepth) {
+          existingDepth.remove();
+        } else if (newBranch !== 'trunk' && !existingDepth) {
+          const ds = document.createElement('select');
+          ds.className = 'depth-select';
+          ds.setAttribute('onchange', `saveDepth(this,${id})`);
+          ds.innerHTML = '<option value="1" selected>Start</option><option value="2">Deeper</option><option value="3">Deepest</option>';
+          row.querySelector('.branch-select').before(ds);
+        }
+
+        row.dataset.branch = newBranch;
+        newList.appendChild(row);
+        refreshArrows(oldList);
+        refreshArrows(newList);
+        await reorderSection(oldBranch);
+        await reorderSection(newBranch);
         flashDot(id, true);
-      } catch { flashDot(id, false); }
+      } catch {
+        select.value = oldBranch;
+        flashDot(id, false);
+      }
     }
 
-    async function moveToMain(id) {
-      try {
-        await patch(id, { is_extension: false });
-        const row = document.getElementById(`row-${id}`);
-        const mainList = document.getElementById('main-list');
-        mainList.insertBefore(row, document.getElementById('add-main'));
+    // ── Build row HTML (for dynamically added checkpoints) ──
 
-        row.querySelector('.move-btn').textContent = '→ Going further';
-        row.querySelector('.move-btn').setAttribute('onclick', `moveToExtension(${id})`);
-        row.dataset.section = 'main';
-
-        refreshArrows(mainList);
-        refreshArrows(document.getElementById('extension-list'));
-        await reorderSection('main-list');
-        await reorderSection('extension-list');
-        flashDot(id, true);
-      } catch { flashDot(id, false); }
+    function buildRow(cp, branch) {
+      const isTrunk = branch === 'trunk';
+      const titleE = escHtml(cp.title);
+      const depthSel = isTrunk ? '' : `
+        <select class="depth-select" onchange="saveDepth(this,${cp.id})">
+          <option value="1" ${cp.depth===1?'selected':''}>Start</option>
+          <option value="2" ${cp.depth===2?'selected':''}>Deeper</option>
+          <option value="3" ${cp.depth===3?'selected':''}>Deepest</option>
+        </select>`;
+      const LABELS = { trunk:'Trunk', visual:'Visual', interactive:'Interactive', data:'Data' };
+      const branchOpts = ['trunk','visual','interactive','data'].map(b =>
+        `<option value="${b}"${b===branch?' selected':''}>${LABELS[b]}</option>`
+      ).join('');
+      return `<div class="cp-row" id="row-${cp.id}" data-id="${cp.id}" data-branch="${branch}" data-title="${titleE}" data-prereqs="[]">
+        <div class="reorder-btns">
+          <button class="reorder-btn" onclick="moveUp(this)">▲</button>
+          <button class="reorder-btn" onclick="moveDown(this)" disabled>▼</button>
+        </div>
+        <span class="cp-code">${escHtml(cp.code)}</span>
+        <input class="cp-title-input" value="${titleE}" onchange="saveTitle(this,${cp.id})">
+        ${depthSel}
+        <select class="branch-select" onchange="moveBranch(this,${cp.id})">${branchOpts}</select>
+        <button class="prereq-btn" onclick="openPrereqModal(${cp.id})">Prereqs</button>
+        <button class="del-btn" onclick="deleteCheckpoint(${cp.id})">✕</button>
+        <span class="status-dot" id="dot-${cp.id}"></span>
+      </div>`;
     }
 
-    async function addCheckpoint(isExtension) {
-      const titleInput = document.getElementById(isExtension ? 'new-ext-title' : 'new-main-title');
-      const tierSelect = document.getElementById(isExtension ? 'new-ext-tier' : 'new-main-tier');
-      const flashEl   = document.getElementById(isExtension ? 'flash-ext' : 'flash-main');
+    // ── Add new checkpoint ──
+
+    async function addCheckpoint(branch) {
+      const titleInput = document.getElementById(`new-title-${branch}`);
+      const depthEl    = document.getElementById(`new-depth-${branch}`);
+      const flashEl    = document.getElementById(`flash-${branch}`);
       const title = titleInput.value.trim();
       if (!title) { titleInput.focus(); return; }
 
-      const btn = titleInput.parentElement.querySelector('.add-btn');
+      const btn = titleInput.closest('.add-row').querySelector('.add-btn');
       btn.disabled = true;
       flashEl.textContent = '';
 
       try {
+        const body = { title, branch };
+        if (depthEl) body.depth = depthEl.value;
         const res = await fetch('/admin/ladder/new', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, tier: tierSelect.value, is_extension: isExtension }),
+          body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed');
 
         const cp = data.checkpoint;
-        const listId = isExtension ? 'extension-list' : 'main-list';
-        const insertBefore = document.getElementById(isExtension ? 'add-ext' : 'add-main');
-        const list = document.getElementById(listId);
-
-        const row = document.createElement('div');
-        row.className = 'cp-row';
-        row.id = `row-${cp.id}`;
-        row.dataset.id = cp.id;
-        row.dataset.section = isExtension ? 'extension' : 'main';
-        row.innerHTML = `
-          <div class="reorder-btns">
-            <button class="reorder-btn" title="Move up"   onclick="moveUp(this)">▲</button>
-            <button class="reorder-btn" title="Move down" onclick="moveDown(this)" disabled>▼</button>
-          </div>
-          <span class="cp-code">${cp.code}</span>
-          <input class="cp-title-input" value="${escHtml(cp.title)}" onchange="saveTitle(this, ${cp.id})">
-          <select class="tier-select" onchange="saveTier(this, ${cp.id})">
-            <option value="1" ${cp.tier===1?'selected':''}>T1</option>
-            <option value="2" ${cp.tier===2?'selected':''}>T2</option>
-            <option value="3" ${cp.tier===3?'selected':''}>T3</option>
-            <option value="4" ${cp.tier===4?'selected':''}>T4</option>
-          </select>
-          <button class="move-btn" onclick="${isExtension ? `moveToMain(${cp.id})` : `moveToExtension(${cp.id})`}">
-            ${isExtension ? '← Main track' : '→ Going further'}
-          </button>
-          <button class="del-btn" onclick="deleteCheckpoint(${cp.id}, '${escHtml(cp.title)}')">✕</button>
-          <span class="status-dot" id="dot-${cp.id}"></span>
-        `;
-        list.insertBefore(row, insertBefore);
+        const list = document.getElementById(`list-${branch}`);
+        list.insertAdjacentHTML('beforeend', buildRow(cp, branch));
         refreshArrows(list);
         titleInput.value = '';
       } catch (err) {
@@ -371,14 +442,18 @@
       }
     }
 
-    async function deleteCheckpoint(id, title) {
+    // ── Delete checkpoint ──
+
+    async function deleteCheckpoint(id) {
+      const row = document.getElementById(`row-${id}`);
+      const title = row.dataset.title || '?';
       if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
       try {
         const res = await fetch(`/admin/ladder/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed');
-        const row = document.getElementById(`row-${id}`);
         const list = row.parentElement;
+        const branch = row.dataset.branch;
         row.remove();
         refreshArrows(list);
       } catch (err) {
@@ -386,8 +461,99 @@
       }
     }
 
-    function escHtml(s) {
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    // ── Prereq modal ──
+
+    function openPrereqModal(id) {
+      const row = document.getElementById(`row-${id}`);
+      modalCheckpointId = id;
+      const code = row.querySelector('.cp-code').textContent.trim();
+      modalPrereqs = JSON.parse(row.dataset.prereqs || '[]');
+      document.getElementById('modal-title').textContent = `Prerequisites for ${code}`;
+      document.getElementById('prereq-error').textContent = '';
+      renderPrereqTags();
+      renderPrereqSelect();
+      document.getElementById('prereq-modal').showModal();
+    }
+
+    function renderPrereqTags() {
+      const container = document.getElementById('prereq-tags');
+      container.innerHTML = '';
+      if (!modalPrereqs.length) {
+        container.innerHTML = '<span class="no-prereqs">No prerequisites set</span>';
+        return;
+      }
+      for (const pr of modalPrereqs) {
+        const tag = document.createElement('span');
+        tag.className = 'prereq-tag';
+        tag.innerHTML = `${escHtml(pr.code)} — ${escHtml(pr.title)} <button onclick="removePrereq(${pr.id})">×</button>`;
+        container.appendChild(tag);
+      }
+    }
+
+    function renderPrereqSelect() {
+      const sel = document.getElementById('prereq-add-select');
+      sel.innerHTML = '<option value="">— add prerequisite —</option>';
+      const existingIds = new Set(modalPrereqs.map(p => p.id));
+      for (const cp of allCheckpoints) {
+        if (cp.id === modalCheckpointId) continue;
+        if (existingIds.has(cp.id)) continue;
+        const opt = document.createElement('option');
+        opt.value = cp.id;
+        opt.textContent = `${cp.code} — ${cp.title}`;
+        sel.appendChild(opt);
+      }
+    }
+
+    function updateRowPrereqs(id, prereqs) {
+      const row = document.getElementById(`row-${id}`);
+      if (!row) return;
+      row.dataset.prereqs = JSON.stringify(prereqs);
+      const btn = row.querySelector('.prereq-btn');
+      if (prereqs.length) {
+        btn.textContent = `Prereqs (${prereqs.length})`;
+        btn.classList.add('has-prereqs');
+      } else {
+        btn.textContent = 'Prereqs';
+        btn.classList.remove('has-prereqs');
+      }
+    }
+
+    async function addPrereq() {
+      const sel = document.getElementById('prereq-add-select');
+      const prereqId = parseInt(sel.value, 10);
+      if (!prereqId) return;
+      const errEl = document.getElementById('prereq-error');
+      errEl.textContent = '';
+      try {
+        const res = await fetch(`/admin/ladder/${modalCheckpointId}/prereqs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prereq_id: prereqId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        modalPrereqs.push(data.prereq);
+        renderPrereqTags();
+        renderPrereqSelect();
+        updateRowPrereqs(modalCheckpointId, modalPrereqs);
+      } catch (err) {
+        errEl.textContent = err.message;
+      }
+    }
+
+    async function removePrereq(prereqId) {
+      const errEl = document.getElementById('prereq-error');
+      errEl.textContent = '';
+      try {
+        const res = await fetch(`/admin/ladder/${modalCheckpointId}/prereqs/${prereqId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+        modalPrereqs = modalPrereqs.filter(p => p.id !== prereqId);
+        renderPrereqTags();
+        renderPrereqSelect();
+        updateRowPrereqs(modalCheckpointId, modalPrereqs);
+      } catch (err) {
+        errEl.textContent = err.message;
+      }
     }
   </script>
 </body>
