@@ -31,11 +31,12 @@ function stubBody(cp) {
   return lines.join('\n\n');
 }
 
-// Load the three full cards
+// Load full cards — use frontmatter code: field so filenames like T3-headings.md work
 const FULL_CARDS = {};
 for (const filename of fs.readdirSync(CARDS_DIR).filter(f => f.endsWith('.md'))) {
-  const code = path.basename(filename, '.md');
-  FULL_CARDS[code] = parseCardFile(filename);
+  const parsed = parseCardFile(filename);
+  const code = parsed.meta.code || path.basename(filename, '.md');
+  FULL_CARDS[code] = parsed;
 }
 
 async function seed() {
