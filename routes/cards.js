@@ -6,13 +6,27 @@ const { requireAuth } = require('../middleware/auth');
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
-      SELECT cp.id, cp.code, cp.title, cp.ordinal, cp.tier, cp.is_extension,
+      SELECT cp.id, cp.code, cp.title, cp.ordinal, cp.branch, cp.depth,
              c.id        AS card_id,
              c.keywords
       FROM checkpoints cp
       LEFT JOIN cards c ON c.checkpoint_id = cp.id
       ORDER BY cp.ordinal
     `);
+
+    // Attach prereq codes to each checkpoint
+    const prereqRows = await pool.query(`
+      SELECT cp.code, rcp.code AS needs_code
+      FROM checkpoint_prereqs pr
+      JOIN checkpoints cp  ON cp.id  = pr.checkpoint_id
+      JOIN checkpoints rcp ON rcp.id = pr.requires_checkpoint_id
+    `);
+    const needsMap = {};
+    for (const r of prereqRows.rows) {
+      if (!needsMap[r.code]) needsMap[r.code] = [];
+      needsMap[r.code].push(r.needs_code);
+    }
+    for (const cp of rows) cp.needs = needsMap[cp.code] || [];
 
     let progress = {};
     if (req.user.role === 'student') {

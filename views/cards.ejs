@@ -139,9 +139,9 @@
     }
     .search-input:focus { border-color: #2980b9; box-shadow: 0 0 0 3px rgba(41,128,185,0.15); }
 
-    /* ── Tier groups ── */
-    .tier-group { margin-bottom: 2rem; }
-    .tier-heading {
+    /* ── Branch groups ── */
+    .branch-group { margin-bottom: 2rem; }
+    .branch-heading {
       font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: 0.1em;
@@ -152,7 +152,7 @@
       border-bottom: 1px solid #e4e4e4;
     }
 
-    .extension-divider {
+    .direction-sep {
       display: flex;
       align-items: center;
       gap: 0.75rem;
@@ -161,14 +161,25 @@
       font-size: 0.75rem;
       font-weight: 600;
       letter-spacing: 0.08em;
-      text-transform: uppercase;
     }
-    .extension-divider::before,
-    .extension-divider::after {
+    .direction-sep::before,
+    .direction-sep::after {
       content: '';
       flex: 1;
       border-top: 1px solid #e0e0e0;
     }
+
+    .prereq-notice {
+      font-size: 0.82rem;
+      color: #888;
+      margin-bottom: 1rem;
+      padding: 0.4rem 0.7rem;
+      background: #f7f7f8;
+      border-radius: 4px;
+      border-left: 3px solid #ccc;
+    }
+    .prereq-notice a { color: #2980b9; text-decoration: none; }
+    .prereq-notice a:hover { text-decoration: underline; }
 
     /* ── Try it button ── */
     .try-it-btn {
@@ -393,101 +404,48 @@
       </div>
 
       <%
-        // Group checkpoints by is_extension flag (set via ladder editor)
-        const mainTrack = checkpoints.filter(cp => !cp.is_extension);
-        const extension = checkpoints.filter(cp =>  cp.is_extension);
+        const trunk       = checkpoints.filter(cp => cp.branch === 'trunk');
+        const lastTrunk   = trunk[trunk.length - 1];
+        const branchGroups = [
+          { key: 'visual',      label: 'Visual',      cps: checkpoints.filter(cp => cp.branch === 'visual') },
+          { key: 'interactive', label: 'Interactive',  cps: checkpoints.filter(cp => cp.branch === 'interactive') },
+          { key: 'data',        label: 'Data',         cps: checkpoints.filter(cp => cp.branch === 'data') },
+        ].filter(b => b.cps.length);
 
-        // Within main track, group by tier
-        const tiers = {};
-        for (const cp of mainTrack) {
-          if (!tiers[cp.tier]) tiers[cp.tier] = [];
-          tiers[cp.tier].push(cp);
+        function cpRow(cp, isFinish) {
+          const hasCard  = cp.card_id != null;
+          const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
+          const cpState  = progress[cp.code] ? progress[cp.code].state : null;
+          const clickable = hasCard || user.role === 'teacher';
+          const cls = 'checkpoint-item' + (clickable ? '' : ' no-card');
+          const attrs = clickable
+            ? `onclick="openCard('${cp.code}')"`
+            : 'disabled';
+          let inner = `<span class="cp-code">${cp.code}</span><span class="cp-title">${cp.title}</span>`;
+          if (isFinish)                       inner += `<span class="cp-finish">Finish line</span>`;
+          if (!hasCard)                       inner += `<span class="cp-coming">Card coming soon</span>`;
+          if (cpState === 'in_progress')      inner += `<span class="state-badge state-in-progress">Started</span>`;
+          if (cpState === 'self_checked')     inner += `<span class="state-badge state-self-checked">Self-checked</span>`;
+          if (cpState === 'needs_work')       inner += `<span class="state-badge" style="background:#fee2e2;color:#991b1b">Needs work</span>`;
+          if (cpState === 'confirmed')        inner += `<span class="state-badge state-confirmed">Confirmed ✓</span>`;
+          if (hasCard && !cpState)            inner += `<span class="cp-arrow">›</span>`;
+          return `<button class="${cls}" data-code="${cp.code}" data-title="${cp.title}" data-keywords="${keywords}" aria-label="${cp.code}: ${cp.title}" ${attrs}>${inner}</button>`;
         }
-        const tierLabels = { 1: 'Tier 1 — Planning', 2: 'Tier 2 — HTML', 3: 'Tier 3 — CSS' };
       %>
 
-      <% for (const [tier, cps] of Object.entries(tiers)) { %>
-        <div class="tier-group" data-tier="<%= tier %>">
-          <div class="tier-heading"><%= tierLabels[tier] || 'Tier ' + tier %></div>
-          <% for (const cp of cps) { %>
-            <%
-              const hasCard = cp.card_id != null;
-              const isFinish = cp.code === 'C08';
-              const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
-              const cpState = progress[cp.code] ? progress[cp.code].state : null;
-            %>
-            <% if (hasCard || user.role === 'teacher') { %>
-            <button
-              class="checkpoint-item"
-              data-code="<%= cp.code %>"
-              data-title="<%= cp.title %>"
-              data-keywords="<%= keywords %>"
-              aria-label="<%= cp.code %>: <%= cp.title %>"
-              onclick="openCard('<%= cp.code %>')"
-            >
-            <% } else { %>
-            <button
-              class="checkpoint-item no-card"
-              data-code="<%= cp.code %>"
-              data-title="<%= cp.title %>"
-              data-keywords="<%= keywords %>"
-              aria-label="<%= cp.code %>: <%= cp.title %> (card coming soon)"
-              disabled
-            >
-            <% } %>
-              <span class="cp-code"><%= cp.code %></span>
-              <span class="cp-title"><%= cp.title %></span>
-              <% if (isFinish) { %><span class="cp-finish">Finish line</span><% } %>
-              <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
-              <% if (cpState === 'in_progress') { %><span class="state-badge state-in-progress">Started</span><% } %>
-              <% if (cpState === 'self_checked') { %><span class="state-badge state-self-checked">Self-checked</span><% } %>
-              <% if (cpState === 'needs_work') { %><span class="state-badge" style="background:#fee2e2;color:#991b1b">Needs work</span><% } %>
-              <% if (cpState === 'confirmed') { %><span class="state-badge state-confirmed">Confirmed ✓</span><% } %>
-              <% if (hasCard && !cpState) { %><span class="cp-arrow">&#8250;</span><% } %>
-            </button>
-          <% } %>
-        </div>
-      <% } %>
+      <div class="branch-group" data-branch="trunk">
+        <div class="branch-heading">Trunk</div>
+        <%- trunk.map(cp => cpRow(cp, cp === lastTrunk)).join('') %>
+      </div>
 
-      <% if (extension.length > 0) { %>
-        <div class="extension-divider">Going further</div>
-        <div class="tier-group" data-tier="extension">
-          <% for (const cp of extension) { %>
-            <%
-              const hasCard = cp.card_id != null;
-              const keywords = Array.isArray(cp.keywords) ? cp.keywords.join(' ') : '';
-              const cpState = progress[cp.code] ? progress[cp.code].state : null;
-            %>
-            <% if (hasCard || user.role === 'teacher') { %>
-            <button
-              class="checkpoint-item"
-              data-code="<%= cp.code %>"
-              data-title="<%= cp.title %>"
-              data-keywords="<%= keywords %>"
-              aria-label="<%= cp.code %>: <%= cp.title %>"
-              onclick="openCard('<%= cp.code %>')"
-            >
-            <% } else { %>
-            <button
-              class="checkpoint-item no-card"
-              data-code="<%= cp.code %>"
-              data-title="<%= cp.title %>"
-              data-keywords="<%= keywords %>"
-              aria-label="<%= cp.code %>: <%= cp.title %> (card coming soon)"
-              disabled
-            >
-            <% } %>
-              <span class="cp-code"><%= cp.code %></span>
-              <span class="cp-title"><%= cp.title %></span>
-              <% if (!hasCard) { %><span class="cp-coming">Card coming soon</span><% } %>
-              <% if (cpState === 'in_progress') { %><span class="state-badge state-in-progress">Started</span><% } %>
-              <% if (cpState === 'self_checked') { %><span class="state-badge state-self-checked">Self-checked</span><% } %>
-              <% if (cpState === 'needs_work') { %><span class="state-badge" style="background:#fee2e2;color:#991b1b">Needs work</span><% } %>
-              <% if (cpState === 'confirmed') { %><span class="state-badge state-confirmed">Confirmed ✓</span><% } %>
-              <% if (hasCard && !cpState) { %><span class="cp-arrow">&#8250;</span><% } %>
-            </button>
-          <% } %>
-        </div>
+      <% if (branchGroups.length) { %>
+        <div class="direction-sep">choose a direction, or mix</div>
+        <% for (const bg of branchGroups) { %>
+          <div class="branch-group" data-branch="<%= bg.key %>">
+            <div class="branch-heading"><%= bg.label %></div>
+            <%- bg.cps.map(cp => cpRow(cp, false)).join('') %>
+          </div>
+        <% } %>
       <% } %>
 
       <p class="no-results" id="no-results" style="display:none">No checkpoints match your search.</p>
@@ -509,6 +467,7 @@
     const progressMap = null;
     <% } %>
     const isTeacher = <%= user.role === 'teacher' %>;
+    const allCheckpoints = <%- JSON.stringify(checkpoints.map(cp => ({ code: cp.code, needs: cp.needs || [] }))).replace(/<\//g, '<\\/') %>;
 
     function toEmbedUrl(url) {
       if (!url) return null;
@@ -671,6 +630,15 @@
           bodyHtml += `<a href="/admin/cards/${card.code}" class="edit-card-link">&#9998; Edit this card</a>`;
         }
 
+        // Prereq notice
+        const cpMeta = allCheckpoints.find(c => c.code === card.code);
+        const needs  = cpMeta ? cpMeta.needs : [];
+        const unmet  = needs.filter(n => !progressMap || !progressMap[n] || progressMap[n].state !== 'confirmed');
+        if (unmet.length) {
+          const links = unmet.map(n => `<a href="#" onclick="openCard('${n}');return false;">${n}</a>`).join(', ');
+          bodyHtml += `<div class="prereq-notice">Needs ${links} first.</div>`;
+        }
+
         if (card.video_url) {
           const embed = toEmbedUrl(card.video_url);
           if (embed) {
@@ -741,18 +709,19 @@
 
       noResults.style.display = visible === 0 ? '' : 'none';
 
-      // Hide tier headings when all their items are hidden
-      document.querySelectorAll('.tier-group').forEach(group => {
+      // Hide branch groups when all their items are hidden
+      document.querySelectorAll('.branch-group').forEach(group => {
         const anyVisible = [...group.querySelectorAll('.checkpoint-item')]
           .some(btn => !btn.classList.contains('hidden'));
         group.style.display = anyVisible ? '' : 'none';
       });
 
-      // Hide extension divider if all extension items are hidden
-      const extDivider = document.querySelector('.extension-divider');
-      if (extDivider) {
-        const extGroup = document.querySelector('[data-tier="extension"]');
-        extDivider.style.display = extGroup && extGroup.style.display !== 'none' ? '' : 'none';
+      // Hide direction separator if all branch groups are hidden
+      const sep = document.querySelector('.direction-sep');
+      if (sep) {
+        const anyBranchVisible = [...document.querySelectorAll('.branch-group[data-branch]:not([data-branch="trunk"])')]
+          .some(g => g.style.display !== 'none');
+        sep.style.display = anyBranchVisible ? '' : 'none';
       }
     });
   </script>
