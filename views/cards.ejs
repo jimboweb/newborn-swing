@@ -139,7 +139,7 @@
     }
     .search-input:focus { border-color: #2980b9; box-shadow: 0 0 0 3px rgba(41,128,185,0.15); }
 
-    /* ── Branch groups ── */
+    /* ── Trunk section ── */
     .branch-group { margin-bottom: 2rem; }
     .branch-heading {
       font-size: 0.7rem;
@@ -152,6 +152,7 @@
       border-bottom: 1px solid #e4e4e4;
     }
 
+    /* ── Direction separator ── */
     .direction-sep {
       display: flex;
       align-items: center;
@@ -163,10 +164,37 @@
       letter-spacing: 0.08em;
     }
     .direction-sep::before,
-    .direction-sep::after {
-      content: '';
-      flex: 1;
-      border-top: 1px solid #e0e0e0;
+    .direction-sep::after { content: ''; flex: 1; border-top: 1px solid #e0e0e0; }
+
+    /* ── Branch columns ── */
+    .branches-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 680px) {
+      .branches-grid { grid-template-columns: 1fr; }
+    }
+    .branch-col-heading {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .depth-group { margin-bottom: 0.9rem; }
+    .depth-heading {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #bbb;
+      margin-bottom: 0.35rem;
+      margin-top: 0.5rem;
     }
 
     .prereq-notice {
@@ -440,12 +468,31 @@
 
       <% if (branchGroups.length) { %>
         <div class="direction-sep">choose a direction, or mix</div>
+        <div class="branches-grid" id="branches-grid">
         <% for (const bg of branchGroups) { %>
-          <div class="branch-group" data-branch="<%= bg.key %>">
-            <div class="branch-heading"><%= bg.label %></div>
-            <%- bg.cps.map(cp => cpRow(cp, false)).join('') %>
+          <%
+            const DEPTH_LABELS = { 1: 'Start here', 2: 'Going deeper', 3: 'Deepest' };
+            const byDepth = {};
+            for (const cp of bg.cps) {
+              const d = cp.depth ?? 1;
+              if (!byDepth[d]) byDepth[d] = [];
+              byDepth[d].push(cp);
+            }
+            const depthKeys = Object.keys(byDepth).map(Number).sort();
+          %>
+          <div class="branch-col" data-branch="<%= bg.key %>">
+            <div class="branch-col-heading"><%= bg.label %></div>
+            <% for (const d of depthKeys) { %>
+              <div class="depth-group" data-depth="<%= d %>">
+                <% if (depthKeys.length > 1) { %>
+                  <div class="depth-heading"><%= DEPTH_LABELS[d] || 'Depth ' + d %></div>
+                <% } %>
+                <%- byDepth[d].map(cp => cpRow(cp, false)).join('') %>
+              </div>
+            <% } %>
           </div>
         <% } %>
+        </div>
       <% } %>
 
       <p class="no-results" id="no-results" style="display:none">No checkpoints match your search.</p>
@@ -709,19 +756,29 @@
 
       noResults.style.display = visible === 0 ? '' : 'none';
 
-      // Hide branch groups when all their items are hidden
-      document.querySelectorAll('.branch-group').forEach(group => {
-        const anyVisible = [...group.querySelectorAll('.checkpoint-item')]
-          .some(btn => !btn.classList.contains('hidden'));
-        group.style.display = anyVisible ? '' : 'none';
-      });
+      // Trunk: hide section if nothing visible
+      const trunkGroup = document.querySelector('.branch-group[data-branch="trunk"]');
+      if (trunkGroup) {
+        trunkGroup.style.display = [...trunkGroup.querySelectorAll('.checkpoint-item')]
+          .some(b => !b.classList.contains('hidden')) ? '' : 'none';
+      }
 
-      // Hide direction separator if all branch groups are hidden
-      const sep = document.querySelector('.direction-sep');
-      if (sep) {
-        const anyBranchVisible = [...document.querySelectorAll('.branch-group[data-branch]:not([data-branch="trunk"])')]
-          .some(g => g.style.display !== 'none');
-        sep.style.display = anyBranchVisible ? '' : 'none';
+      // Branches: hide depth groups, then columns, then the whole grid + separator
+      document.querySelectorAll('.depth-group').forEach(dg => {
+        dg.style.display = [...dg.querySelectorAll('.checkpoint-item')]
+          .some(b => !b.classList.contains('hidden')) ? '' : 'none';
+      });
+      document.querySelectorAll('.branch-col').forEach(col => {
+        col.style.display = [...col.querySelectorAll('.checkpoint-item')]
+          .some(b => !b.classList.contains('hidden')) ? '' : 'none';
+      });
+      const grid = document.getElementById('branches-grid');
+      const sep  = document.querySelector('.direction-sep');
+      if (grid) {
+        const anyBranch = [...grid.querySelectorAll('.checkpoint-item')]
+          .some(b => !b.classList.contains('hidden'));
+        grid.style.display = anyBranch ? '' : 'none';
+        if (sep) sep.style.display = anyBranch ? '' : 'none';
       }
     });
   </script>
