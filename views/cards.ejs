@@ -501,6 +501,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
   <script>
+    // Escape raw HTML in markdown instead of passing it through
+    marked.use({ renderer: { html(t) { return (t.raw||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); } } });
+
     const drawer      = document.getElementById('card-drawer');
     const drawerCode  = document.getElementById('drawer-code');
     const drawerTitle = document.getElementById('drawer-title');

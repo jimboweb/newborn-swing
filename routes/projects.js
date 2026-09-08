@@ -68,29 +68,28 @@ router.get('/restaurant', requireAuth, async (req, res, next) => {
 // POST /projects/try/:cardCode — get or create scratch project for a card
 router.post('/try/:cardCode', requireAuth, async (req, res, next) => {
   try {
-    const code = req.params.cardCode.toUpperCase();
-
     const cardResult = await pool.query(
-      `SELECT c.starter_json FROM cards c
+      `SELECT c.starter_json, cp.code FROM cards c
        JOIN checkpoints cp ON cp.id = c.checkpoint_id
-       WHERE cp.code = $1`,
-      [code]
+       WHERE UPPER(cp.code) = UPPER($1)`,
+      [req.params.cardCode]
     );
     if (!cardResult.rows.length) return res.status(404).json({ error: 'Card not found' });
 
-    const starterJson = cardResult.rows[0].starter_json; // already parsed by pg (JSONB)
+    const { starter_json: starterJson, code } = cardResult.rows[0];
+    const projectTitle = `${code} scratch`;
 
     // Reopen existing scratch project for this user + card
     const existing = await pool.query(
       `SELECT id FROM projects WHERE user_id = $1 AND kind = 'scratch' AND title = $2 LIMIT 1`,
-      [req.user.id, `${code} scratch`]
+      [req.user.id, projectTitle]
     );
     if (existing.rows.length) return res.json({ projectId: existing.rows[0].id });
 
     // Create new scratch project
     const { rows } = await pool.query(
       `INSERT INTO projects (user_id, kind, title) VALUES ($1, 'scratch', $2) RETURNING id`,
-      [req.user.id, `${code} scratch`]
+      [req.user.id, projectTitle]
     );
     const projectId = rows[0].id;
 

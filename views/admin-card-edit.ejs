@@ -197,6 +197,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
   <script>
+    marked.use({ renderer: { html(t) { return (t.raw||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); } } });
+
     const bodyInput    = document.getElementById('body-md');
     const videoInput   = document.getElementById('video-url');
     const keywordsInput= document.getElementById('keywords');

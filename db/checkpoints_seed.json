@@ -51,8 +51,8 @@
     "session": "2",
     "goal": "You can make words appear in a browser.",
     "self_check": "Do your words appear? Is your restaurant's name in the browser tab?",
-    "new_things": "<html> <head> <body> <title> <h1> <p>",
-    "fix_this": "A page where the restaurant name is inside <title> and the <body> is empty. The page is blank \u2014 but the name IS in the browser tab. Where did it go?",
+    "new_things": "`<html>` `<head>` `<body>` `<title>` `<h1>` `<p>`",
+    "fix_this": "A page where the restaurant name is inside `<title>` and the `<body>` is empty. The page is blank \u2014 but the name IS in the browser tab. Where did it go?",
     "video_suggested": false
   },
   {
@@ -65,8 +65,8 @@
     "session": "2",
     "goal": "You can break your page into parts with headings.",
     "self_check": "Read only your headings top to bottom. Do they work as an outline on their own?",
-    "new_things": "<h2> <h3>",
-    "fix_this": "A page where every single line is an <h1>, so nothing looks more important than anything else. Give it a proper heading order.",
+    "new_things": "`<h2>` `<h3>`",
+    "fix_this": "A page where every single line is an `<h1>`, so nothing looks more important than anything else. Give it a proper heading order.",
     "video_suggested": false
   },
   {
@@ -79,8 +79,8 @@
     "session": "3",
     "goal": "You can make a list where each item sits on its own line.",
     "self_check": "Does each item sit on its own line with a bullet?",
-    "new_things": "<ul> <li>",
-    "fix_this": "A list with the <li> tags missing, so it all runs together.",
+    "new_things": "`<ul>` `<li>`",
+    "fix_this": "A list with the `<li>` tags missing, so it all runs together.",
     "video_suggested": false
   },
   {
@@ -94,7 +94,7 @@
     "goal": "You can nest tags without tangling them.",
     "self_check": "Does every open tag have its partner, in reverse order?",
     "new_things": "nesting, indenting",
-    "fix_this": "A list where each <ul> is opened inside the one before it and never closed. Every item marches further right with a different bullet. Where does each list end?",
+    "fix_this": "A list where each `<ul>` is opened inside the one before it and never closed. Every item marches further right with a different bullet. Where does each list end?",
     "video_suggested": false
   },
   {
@@ -107,8 +107,8 @@
     "session": "4",
     "goal": "You can put a picture on your page and describe it for people who cannot see it.",
     "self_check": "If the image file vanished, would the alt text still tell you what was there?",
-    "new_things": "<img>, src, alt",
-    "fix_this": "An <img> with a filename that does not exist, and one with no alt.",
+    "new_things": "`<img>`, src, alt",
+    "fix_this": "An `<img>` with a filename that does not exist, and one with no alt.",
     "video_suggested": false
   },
   {
@@ -121,7 +121,7 @@
     "session": "4",
     "goal": "You can send someone somewhere else, and you know how to write the address.",
     "self_check": "Read just the blue words with the sentence covered. Do you still know where each goes?",
-    "new_things": "<a>, href",
+    "new_things": "`<a>`, href",
     "fix_this": "A link saying 'click here', and one to another site missing its https://.",
     "video_suggested": false
   },
@@ -136,7 +136,7 @@
     "goal": "You can find a broken tag before anyone else does.",
     "self_check": "Zero errors? And does the page still look right afterwards?",
     "new_things": "the validator",
-    "fix_this": "One unclosed </p> that the browser silently repairs, so the page LOOKS fine. Only the validator finds it.",
+    "fix_this": "One unclosed `</p>` that the browser silently repairs, so the page LOOKS fine. Only the validator finds it.",
     "video_suggested": true
   },
   {
@@ -149,7 +149,7 @@
     "session": "7",
     "goal": "Your colours live in a different file from your words.",
     "self_check": "Delete style.css. Did the page go plain? If not, your CSS is in the wrong place.",
-    "new_things": "<link>, the .css file",
+    "new_things": "`<link>`, the .css file",
     "fix_this": "The link says styles.css but the file is called style.css.",
     "video_suggested": false
   },
@@ -333,7 +333,7 @@
     "session": null,
     "goal": "You can put several tags inside one container so they move and style as one.",
     "self_check": "Add a temporary border to your div. Does it wrap exactly what you meant?",
-    "new_things": "<div>",
+    "new_things": "`<div>`",
     "fix_this": "Every dish needs a background colour, but there is nothing to put it on.",
     "video_suggested": false
   },
@@ -461,7 +461,7 @@
     "session": null,
     "goal": "You can run some JavaScript from your page.",
     "self_check": "Does your message appear in the console?",
-    "new_things": "<script>, console.log",
+    "new_things": "`<script>`, console.log",
     "fix_this": "A script tag pointing at a file that does not exist. Nothing happens, nothing complains.",
     "video_suggested": true
   },
@@ -493,7 +493,7 @@
     "session": null,
     "goal": "Something on your page reacts when a visitor clicks it.",
     "self_check": "Write down what should happen before you click. Did exactly that happen?",
-    "new_things": "addEventListener, <button>",
+    "new_things": "addEventListener, `<button>`",
     "fix_this": "A button wired to the wrong element, so clicking does nothing.",
     "video_suggested": false
   },

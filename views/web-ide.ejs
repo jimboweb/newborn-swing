@@ -308,6 +308,8 @@
   <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
   <script>
+    marked.use({ renderer: { html(t) { return (t.raw||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); } } });
+
     // ── Data from server ──
     const projectId      = <%= project.id %>;
     const initialFiles   = <%- filesJson %>;
