@@ -1,0 +1,645 @@
+[
+  {
+    "code": "T0",
+    "title": "What happens when you go to a website",
+    "branch": "trunk",
+    "depth": 0,
+    "ordinal": 1,
+    "needs": [],
+    "session": "2",
+    "goal": "You can explain, in order, what happens between clicking a link and seeing a page.",
+    "self_check": "Say the six steps out loud in order. What did the server actually send back?",
+    "new_things": "no code",
+    "fix_this": "No broken code \u2014 instead, open the Network tab and count the requests one page makes.",
+    "video_suggested": true
+  },
+  {
+    "code": "T0a",
+    "title": "The pieces a website is made of",
+    "branch": "trunk",
+    "depth": 0,
+    "ordinal": 2,
+    "needs": [],
+    "session": "2",
+    "goal": "You can name the three languages a web page is made of, and say what each one is for.",
+    "self_check": "Which of the three could make a button react to a click? Which two could not, however well written?",
+    "new_things": "no code",
+    "fix_this": "A page where the colours have gone but the words are still there. Which file is missing?",
+    "video_suggested": false
+  },
+  {
+    "code": "T1",
+    "title": "What is a dish?",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 3,
+    "needs": [],
+    "session": "1",
+    "goal": "You can say what every dish on your menu needs to have.",
+    "self_check": "Could someone write your menu from your list without asking you anything?",
+    "new_things": "no code",
+    "fix_this": "A dish with no price and a description that just says 'yummy'.",
+    "video_suggested": false
+  },
+  {
+    "code": "T2",
+    "title": "Your first page",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 4,
+    "needs": [],
+    "session": "2",
+    "goal": "You can make words appear in a browser.",
+    "self_check": "Do your words appear? Is your restaurant's name in the browser tab?",
+    "new_things": "<html> <head> <body> <title> <h1> <p>",
+    "fix_this": "A page where the restaurant name is inside <title> and the <body> is empty. The page is blank \u2014 but the name IS in the browser tab. Where did it go?",
+    "video_suggested": false
+  },
+  {
+    "code": "T3",
+    "title": "Headings big and small",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 5,
+    "needs": [],
+    "session": "2",
+    "goal": "You can break your page into parts with headings.",
+    "self_check": "Read only your headings top to bottom. Do they work as an outline on their own?",
+    "new_things": "<h2> <h3>",
+    "fix_this": "A page where every single line is an <h1>, so nothing looks more important than anything else. Give it a proper heading order.",
+    "video_suggested": false
+  },
+  {
+    "code": "T4",
+    "title": "Lists",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 6,
+    "needs": [],
+    "session": "3",
+    "goal": "You can make a list where each item sits on its own line.",
+    "self_check": "Does each item sit on its own line with a bullet?",
+    "new_things": "<ul> <li>",
+    "fix_this": "A list with the <li> tags missing, so it all runs together.",
+    "video_suggested": false
+  },
+  {
+    "code": "T5",
+    "title": "Putting one tag inside another",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 7,
+    "needs": [],
+    "session": "3",
+    "goal": "You can nest tags without tangling them.",
+    "self_check": "Does every open tag have its partner, in reverse order?",
+    "new_things": "nesting, indenting",
+    "fix_this": "A list where each <ul> is opened inside the one before it and never closed. Every item marches further right with a different bullet. Where does each list end?",
+    "video_suggested": false
+  },
+  {
+    "code": "T6",
+    "title": "Pictures",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 8,
+    "needs": [],
+    "session": "4",
+    "goal": "You can put a picture on your page and describe it for people who cannot see it.",
+    "self_check": "If the image file vanished, would the alt text still tell you what was there?",
+    "new_things": "<img>, src, alt",
+    "fix_this": "An <img> with a filename that does not exist, and one with no alt.",
+    "video_suggested": false
+  },
+  {
+    "code": "T7",
+    "title": "Links",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 9,
+    "needs": [],
+    "session": "4",
+    "goal": "You can send someone somewhere else, and you know how to write the address.",
+    "self_check": "Read just the blue words with the sentence covered. Do you still know where each goes?",
+    "new_things": "<a>, href",
+    "fix_this": "A link saying 'click here', and one to another site missing its https://.",
+    "video_suggested": false
+  },
+  {
+    "code": "T8",
+    "title": "Checking your HTML",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 10,
+    "needs": [],
+    "session": "5",
+    "goal": "You can find a broken tag before anyone else does.",
+    "self_check": "Zero errors? And does the page still look right afterwards?",
+    "new_things": "the validator",
+    "fix_this": "One unclosed </p> that the browser silently repairs, so the page LOOKS fine. Only the validator finds it.",
+    "video_suggested": true
+  },
+  {
+    "code": "T9",
+    "title": "Connecting a stylesheet",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 11,
+    "needs": [],
+    "session": "7",
+    "goal": "Your colours live in a different file from your words.",
+    "self_check": "Delete style.css. Did the page go plain? If not, your CSS is in the wrong place.",
+    "new_things": "<link>, the .css file",
+    "fix_this": "The link says styles.css but the file is called style.css.",
+    "video_suggested": false
+  },
+  {
+    "code": "T10",
+    "title": "What a rule looks like",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 12,
+    "needs": [],
+    "session": "7",
+    "goal": "You can read any piece of CSS and name its three parts.",
+    "self_check": "Can you point at all three parts in a rule you did not write?",
+    "new_things": "selector, property, value",
+    "fix_this": "A rule missing a semicolon and a closing bracket.",
+    "video_suggested": false
+  },
+  {
+    "code": "T11",
+    "title": "Colour",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 13,
+    "needs": [],
+    "session": "7",
+    "goal": "You can set the colour of any words or any background.",
+    "self_check": "Stand back two metres. Can you still read every part of your page?",
+    "new_things": "color, background-color, hex",
+    "fix_this": "Pale grey text on white. Can you read it from across the room?",
+    "video_suggested": false
+  },
+  {
+    "code": "T12",
+    "title": "Lettering and size",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 14,
+    "needs": [],
+    "session": "7",
+    "goal": "You can change which lettering your page uses and how big it is.",
+    "self_check": "Is your smallest text comfortable for a seven-year-old?",
+    "new_things": "font-family, font-size, font-weight, line-height, text-align",
+    "fix_this": "font-family: Trebuchet MS, sans-serif \u2014 missing its quote marks.",
+    "video_suggested": false
+  },
+  {
+    "code": "T13",
+    "title": "Choosing what to change",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 15,
+    "needs": [],
+    "session": "8",
+    "goal": "You can style every paragraph, or only the ones you picked.",
+    "self_check": "Did only the things you meant to change actually change?",
+    "new_things": "tag selectors, class selectors, class attribute",
+    "fix_this": "CSS saying price { } with no dot, and HTML saying class=\".price\" with one.",
+    "video_suggested": false
+  },
+  {
+    "code": "T14",
+    "title": "Padding, border and margin",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 16,
+    "needs": [],
+    "session": "9",
+    "goal": "You can put space around anything on your page.",
+    "self_check": "Add a temporary border. Can you see where the box actually ends?",
+    "new_things": "padding, border, margin",
+    "fix_this": "A box with padding and margin swapped. Which one moved the neighbours?",
+    "video_suggested": true
+  },
+  {
+    "code": "T15",
+    "title": "One side at a time",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 17,
+    "needs": [],
+    "session": "9",
+    "goal": "You can put space on just the top, or just the left.",
+    "self_check": "Exactly one line above each dish, and none anywhere else?",
+    "new_things": "padding-top, margin-bottom, border-top",
+    "fix_this": "A dish list where the line lands under the description instead of above the name.",
+    "video_suggested": false
+  },
+  {
+    "code": "T16",
+    "title": "Putting things in the middle",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 18,
+    "needs": [],
+    "session": "9",
+    "goal": "You can centre the page, and centre a picture.",
+    "self_check": "Widen the browser window. Does your page stay centred?",
+    "new_things": "max-width, margin: 0 auto, display: block",
+    "fix_this": "A picture with margin: 0 auto that will not move. It needs display: block.",
+    "video_suggested": true
+  },
+  {
+    "code": "T17",
+    "title": "Sizing pictures",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 19,
+    "needs": [],
+    "session": "9",
+    "goal": "You can size a picture without squashing it.",
+    "self_check": "Does the picture look like the real thing, not stretched?",
+    "new_things": "width, height",
+    "fix_this": "A logo with both set wrong, so it looks stretched.",
+    "video_suggested": false
+  },
+  {
+    "code": "T18",
+    "title": "When nothing happens",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 20,
+    "needs": [],
+    "session": "7",
+    "goal": "You can work out why your CSS is being ignored.",
+    "self_check": "Put background-color: gold on body. No gold means the link is the problem, not your rule.",
+    "new_things": "debugging",
+    "fix_this": "One missing } stopping every rule below it from working.",
+    "video_suggested": true
+  },
+  {
+    "code": "T19",
+    "title": "Writing criteria a partner can test",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 21,
+    "needs": [],
+    "session": "10",
+    "goal": "You can write down what 'finished' means so someone else can check it without asking you.",
+    "self_check": "Hand it to a partner. Did they get through it without asking you anything?",
+    "new_things": "no code",
+    "fix_this": "A criterion saying 'the menu should look nice'. Rewrite it so two people would agree.",
+    "video_suggested": false
+  },
+  {
+    "code": "T20",
+    "title": "Writing a bug report",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 22,
+    "needs": [],
+    "session": "11",
+    "goal": "You can report a problem so precisely someone else can see it themselves.",
+    "self_check": "Could someone follow your steps and see the same problem without you there?",
+    "new_things": "no code",
+    "fix_this": "A report saying 'the page is broken'.",
+    "video_suggested": false
+  },
+  {
+    "code": "T21",
+    "title": "Giving useful feedback",
+    "branch": "trunk",
+    "depth": null,
+    "ordinal": 23,
+    "needs": [],
+    "session": "11",
+    "goal": "You can say what is wrong with a page without being unkind or vague.",
+    "self_check": "Does it name one thing, on one part of the page, that could actually be changed?",
+    "new_things": "no code",
+    "fix_this": "Feedback saying 'the colours are bad'. Rewrite so the author knows what to change.",
+    "video_suggested": false
+  },
+  {
+    "code": "V1",
+    "title": "Grouping things together",
+    "branch": "visual",
+    "depth": 1,
+    "ordinal": 1,
+    "needs": [
+      "T14"
+    ],
+    "session": null,
+    "goal": "You can put several tags inside one container so they move and style as one.",
+    "self_check": "Add a temporary border to your div. Does it wrap exactly what you meant?",
+    "new_things": "<div>",
+    "fix_this": "Every dish needs a background colour, but there is nothing to put it on.",
+    "video_suggested": false
+  },
+  {
+    "code": "V2",
+    "title": "Photographs that load fast",
+    "branch": "visual",
+    "depth": 1,
+    "ordinal": 2,
+    "needs": [
+      "T17"
+    ],
+    "session": null,
+    "goal": "You can add real photos of your dishes without making the page slow.",
+    "self_check": "Does the whole page appear in under two seconds?",
+    "new_things": "width, image files, alt",
+    "fix_this": "A page with three huge photos. Time how long it takes to appear.",
+    "video_suggested": false
+  },
+  {
+    "code": "V3",
+    "title": "A colour scheme that works",
+    "branch": "visual",
+    "depth": 2,
+    "ordinal": 3,
+    "needs": [
+      "T11"
+    ],
+    "session": null,
+    "goal": "Your colours look deliberate and everyone can read them.",
+    "self_check": "Does every text colour pass the contrast checker against what is behind it?",
+    "new_things": "contrast, palette",
+    "fix_this": "A palette where the price colour fails contrast against the background.",
+    "video_suggested": false
+  },
+  {
+    "code": "V4",
+    "title": "Type that guides the eye",
+    "branch": "visual",
+    "depth": 2,
+    "ordinal": 4,
+    "needs": [
+      "T12"
+    ],
+    "session": null,
+    "goal": "Someone can find what they want without reading everything.",
+    "self_check": "Ask someone to find the cheapest vegetarian dish. Time them. Under 30 seconds?",
+    "new_things": "size scale, weight, spacing",
+    "fix_this": "A menu where dish names and descriptions are the same size and weight.",
+    "video_suggested": false
+  },
+  {
+    "code": "V5",
+    "title": "Side by side",
+    "branch": "visual",
+    "depth": 2,
+    "ordinal": 5,
+    "needs": [
+      "V1"
+    ],
+    "session": null,
+    "goal": "You can put two things next to each other instead of stacked.",
+    "self_check": "Do name and price align at the same edge on every single dish?",
+    "new_things": "display: flex, justify-content, gap",
+    "fix_this": "A dish where the name and price will not share a line.",
+    "video_suggested": true
+  },
+  {
+    "code": "V6",
+    "title": "Showing something can be clicked",
+    "branch": "visual",
+    "depth": 2,
+    "ordinal": 6,
+    "needs": [
+      "T7"
+    ],
+    "session": null,
+    "goal": "Your links look different under the mouse and under the keyboard.",
+    "self_check": "Tab through the whole page. Can you always see where you are?",
+    "new_things": ":hover, :focus",
+    "fix_this": "A page with :hover only. Now reach the link using nothing but Tab.",
+    "video_suggested": true
+  },
+  {
+    "code": "V7",
+    "title": "Fits any screen",
+    "branch": "visual",
+    "depth": 3,
+    "ordinal": 7,
+    "needs": [
+      "V5"
+    ],
+    "session": null,
+    "goal": "Your menu works on a phone as well as a laptop.",
+    "self_check": "Drag the window from very narrow to very wide. Does anything overlap or fall off?",
+    "new_things": "@media, relative widths",
+    "fix_this": "A layout that looks right on a laptop and breaks completely at phone width.",
+    "video_suggested": true
+  },
+  {
+    "code": "V8",
+    "title": "More than one page",
+    "branch": "visual",
+    "depth": 3,
+    "ordinal": 8,
+    "needs": [
+      "T7"
+    ],
+    "session": null,
+    "goal": "You can build a site of several pages that link to each other.",
+    "self_check": "From any page, can you reach every other page without the back button?",
+    "new_things": "file paths, a nav list",
+    "fix_this": "A second page with no way back to the first.",
+    "video_suggested": false
+  },
+  {
+    "code": "I1",
+    "title": "Your first script",
+    "branch": "interactive",
+    "depth": 1,
+    "ordinal": 9,
+    "needs": [
+      "T8"
+    ],
+    "session": null,
+    "goal": "You can run some JavaScript from your page.",
+    "self_check": "Does your message appear in the console?",
+    "new_things": "<script>, console.log",
+    "fix_this": "A script tag pointing at a file that does not exist. Nothing happens, nothing complains.",
+    "video_suggested": true
+  },
+  {
+    "code": "I2",
+    "title": "Finding something on the page",
+    "branch": "interactive",
+    "depth": 1,
+    "ordinal": 10,
+    "needs": [
+      "I1"
+    ],
+    "session": null,
+    "goal": "You can reach into the page from JavaScript and change something.",
+    "self_check": "Did the thing on the page change when you reloaded?",
+    "new_things": "querySelector, textContent",
+    "fix_this": "A script that runs before the page has loaded, so it finds nothing.",
+    "video_suggested": false
+  },
+  {
+    "code": "I3",
+    "title": "Responding to a click",
+    "branch": "interactive",
+    "depth": 2,
+    "ordinal": 11,
+    "needs": [
+      "I2"
+    ],
+    "session": null,
+    "goal": "Something on your page reacts when a visitor clicks it.",
+    "self_check": "Write down what should happen before you click. Did exactly that happen?",
+    "new_things": "addEventListener, <button>",
+    "fix_this": "A button wired to the wrong element, so clicking does nothing.",
+    "video_suggested": false
+  },
+  {
+    "code": "I4",
+    "title": "Show and hide",
+    "branch": "interactive",
+    "depth": 2,
+    "ordinal": 12,
+    "needs": [
+      "I3"
+    ],
+    "session": null,
+    "goal": "A visitor can open and close parts of your menu.",
+    "self_check": "Click twice. Are you back where you started?",
+    "new_things": "classList, hidden",
+    "fix_this": "A show/hide button that hides but will not bring anything back.",
+    "video_suggested": false
+  },
+  {
+    "code": "I5",
+    "title": "Adding up an order",
+    "branch": "interactive",
+    "depth": 3,
+    "ordinal": 13,
+    "needs": [
+      "I3"
+    ],
+    "session": null,
+    "goal": "A visitor can choose dishes and see the total.",
+    "self_check": "Add three dishes and remove one. Does the total match what you work out on paper?",
+    "new_things": "numbers, running totals, toFixed",
+    "fix_this": "A total showing 12.300000000000001 instead of 12.30.",
+    "video_suggested": false
+  },
+  {
+    "code": "I6",
+    "title": "Remembering what they chose",
+    "branch": "interactive",
+    "depth": 3,
+    "ordinal": 14,
+    "needs": [
+      "I5"
+    ],
+    "session": null,
+    "goal": "Your page keeps track of what the visitor has done so far.",
+    "self_check": "Do a dozen random clicks. Does the screen still match the underlying numbers?",
+    "new_things": "state, arrays",
+    "fix_this": "A page where the display and the real total quietly disagree.",
+    "video_suggested": false
+  },
+  {
+    "code": "D1",
+    "title": "The menu as a list of data",
+    "branch": "data",
+    "depth": 1,
+    "ordinal": 15,
+    "needs": [
+      "I1"
+    ],
+    "session": null,
+    "goal": "Your dishes live in a list in JavaScript instead of being typed into the HTML.",
+    "self_check": "Is every dish in the list, with the same fields, spelled the same way every time?",
+    "new_things": "arrays, objects",
+    "fix_this": "A dish object missing its price. What should happen to it?",
+    "video_suggested": false
+  },
+  {
+    "code": "D2",
+    "title": "Building the page from the data",
+    "branch": "data",
+    "depth": 2,
+    "ordinal": 16,
+    "needs": [
+      "D1"
+    ],
+    "session": null,
+    "goal": "The HTML for your dishes is written by your code, not by you.",
+    "self_check": "Add a dish to the list only. Does it appear without you touching the HTML?",
+    "new_things": "loops, template strings, innerHTML",
+    "fix_this": "A loop that only ever shows the last dish.",
+    "video_suggested": true
+  },
+  {
+    "code": "D3",
+    "title": "When the data is wrong",
+    "branch": "data",
+    "depth": 2,
+    "ordinal": 17,
+    "needs": [
+      "D2"
+    ],
+    "session": null,
+    "goal": "Your page copes with a dish that is missing something.",
+    "self_check": "Delete a field from one dish. Does the page still look deliberate?",
+    "new_things": "if, defaults, empty state",
+    "fix_this": "A dish with no description, printing 'undefined' on the page for everyone to see.",
+    "video_suggested": false
+  },
+  {
+    "code": "D4",
+    "title": "Filtering",
+    "branch": "data",
+    "depth": 3,
+    "ordinal": 18,
+    "needs": [
+      "D2",
+      "I3"
+    ],
+    "session": null,
+    "goal": "A visitor can choose to see only some of the dishes.",
+    "self_check": "Choose each filter. Does the number of dishes shown match what you counted by hand?",
+    "new_things": "filter, given/when/then",
+    "fix_this": "A filter that hides everything, because the tag names do not match the data.",
+    "video_suggested": false
+  },
+  {
+    "code": "D5",
+    "title": "Sorting",
+    "branch": "data",
+    "depth": 3,
+    "ordinal": 19,
+    "needs": [
+      "D2"
+    ],
+    "session": null,
+    "goal": "A visitor can put the menu in price order.",
+    "self_check": "Sort by price. Read the prices top to bottom. Are they really in order?",
+    "new_things": "sort, comparing numbers",
+    "fix_this": "A price sort that puts $10.00 before $9.00.",
+    "video_suggested": false
+  },
+  {
+    "code": "D6",
+    "title": "One file, many pages",
+    "branch": "data",
+    "depth": 3,
+    "ordinal": 20,
+    "needs": [
+      "D2"
+    ],
+    "session": null,
+    "goal": "The same data file fills more than one page of your site.",
+    "self_check": "Change one price in the data file. Did it change everywhere it appears?",
+    "new_things": "reuse, shared data",
+    "fix_this": "Two pages with two copies of the data that have drifted apart.",
+    "video_suggested": false
+  }
+]
