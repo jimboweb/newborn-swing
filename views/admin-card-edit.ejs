@@ -69,7 +69,15 @@
     .md-label {
       padding: 0.4rem 1rem 0.2rem; font-size: 0.72rem; color: #666;
       letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
     }
+    .upload-img-btn {
+      font-size: 0.75rem; background: #0e639c; color: #fff; border: none;
+      border-radius: 3px; padding: 0.2rem 0.6rem; cursor: pointer;
+      text-transform: none; letter-spacing: 0;
+    }
+    .upload-img-btn:hover { background: #1177bb; }
+    .upload-img-btn:disabled { opacity: 0.6; cursor: default; }
     .md-textarea {
       flex: 1; resize: none; border: none; outline: none;
       background: #1e1e1e; color: #d4d4d4;
@@ -175,7 +183,11 @@
       </div>
 
       <div class="md-section">
-        <div class="md-label">Card content (Markdown) — images: ![alt](url)</div>
+        <div class="md-label">
+          <span>Card content (Markdown)</span>
+          <button class="upload-img-btn" id="upload-btn" onclick="document.getElementById('img-upload').click()">&#128444; Upload image</button>
+          <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(this)">
+        </div>
         <textarea class="md-textarea" id="body-md" spellcheck="true"><%= cp.body_md || '' %></textarea>
       </div>
 
@@ -258,6 +270,33 @@
     function schedulePreview() {
       if (previewTimer) clearTimeout(previewTimer);
       previewTimer = setTimeout(buildPreview, 300);
+    }
+
+    async function uploadImage(input) {
+      if (!input.files[0]) return;
+      const btn = document.getElementById('upload-btn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading…';
+      try {
+        const fd = new FormData();
+        fd.append('image', input.files[0]);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        const tag = `![](${data.url})`;
+        const start = bodyInput.selectionStart;
+        const end   = bodyInput.selectionEnd;
+        bodyInput.value = bodyInput.value.slice(0, start) + tag + bodyInput.value.slice(end);
+        bodyInput.selectionStart = bodyInput.selectionEnd = start + tag.length;
+        bodyInput.dispatchEvent(new Event('input'));
+        bodyInput.focus();
+      } catch (err) {
+        alert('Upload failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🖼 Upload image';
+        input.value = '';
+      }
     }
 
     bodyInput.addEventListener('input', () => { markDirty(); schedulePreview(); });
