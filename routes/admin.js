@@ -155,8 +155,8 @@ router.get('/cards/:code', requireTeacher, async (req, res, next) => {
              c.body_md, c.keywords, c.video_url, c.starter_json
       FROM checkpoints cp
       LEFT JOIN cards c ON c.checkpoint_id = cp.id
-      WHERE cp.code = $1
-    `, [req.params.code.toUpperCase()]);
+      WHERE UPPER(cp.code) = UPPER($1)
+    `, [req.params.code]);
     if (!rows.length) return res.status(404).send('Checkpoint not found');
     res.render('admin-card-edit', { user: req.user, cp: rows[0] });
   } catch (err) { next(err); }
@@ -165,7 +165,7 @@ router.get('/cards/:code', requireTeacher, async (req, res, next) => {
 router.post('/cards/:code', requireTeacher, async (req, res, next) => {
   try {
     const { body_md, video_url, keywords, starter_json } = req.body;
-    const cp = await pool.query('SELECT id FROM checkpoints WHERE code = $1', [req.params.code.toUpperCase()]);
+    const cp = await pool.query('SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($1)', [req.params.code]);
     if (!cp.rows.length) return res.status(404).json({ error: 'Checkpoint not found' });
     const checkpointId = cp.rows[0].id;
     const kwArray = keywords ? keywords.split(',').map(k => k.trim()).filter(Boolean) : [];

@@ -54,8 +54,8 @@ router.get('/data/:code', requireAuth, async (req, res, next) => {
              c.body_md, c.keywords, c.video_url, c.starter_json
       FROM checkpoints cp
       LEFT JOIN cards c ON c.checkpoint_id = cp.id
-      WHERE cp.code = $1
-    `, [req.params.code.toUpperCase()]);
+      WHERE UPPER(cp.code) = UPPER($1)
+    `, [req.params.code]);
 
     if (!rows.length) return res.status(404).json({ error: 'Not found' });
     res.json(rows[0]);
