@@ -31,9 +31,14 @@
     .topnav h1 { font-size: 1rem; font-weight: 700; color: #111; white-space: nowrap; }
     .back-link { font-size: 0.85rem; color: #2980b9; text-decoration: none; white-space: nowrap; }
     .back-link:hover { text-decoration: underline; }
-    .topnav-right { font-size: 0.85rem; color: #555; white-space: nowrap; }
+    .topnav-right { font-size: 0.85rem; color: #555; white-space: nowrap; display: flex; align-items: center; gap: 1rem; }
     .topnav-right a { color: #555; text-decoration: none; }
     .topnav-right a:hover { text-decoration: underline; }
+    .editor-btn {
+      padding: 0.3rem 0.85rem; background: #2980b9; color: #fff !important;
+      border-radius: 5px; font-weight: 600; font-size: 0.82rem; white-space: nowrap;
+    }
+    .editor-btn:hover { background: #2471a3; text-decoration: none !important; }
 
     /* ── Layout: drawer + ladder ── */
     .layout {
@@ -398,7 +403,12 @@
         <a href="/admin/ladder" class="back-link">&#9998; Ladder Editor</a>
       <% } %>
     </div>
-    <span class="topnav-right"><%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+    <span class="topnav-right">
+      <% if (user.role === 'student') { %>
+        <a href="/projects/restaurant" class="editor-btn">Open Editor</a>
+      <% } %>
+      <%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a>
+    </span>
   </nav>
 
   <div class="layout">
