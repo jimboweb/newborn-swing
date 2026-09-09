@@ -79,12 +79,25 @@ router.post('/try/:cardCode', requireAuth, async (req, res, next) => {
     const { starter_json: starterJson, code } = cardResult.rows[0];
     const projectTitle = `${code} scratch`;
 
-    // Reopen existing scratch project for this user + card
+    const starter = (starterJson && typeof starterJson === 'object')
+      ? starterJson
+      : { 'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><title>Scratch</title></head>\n<body>\n  <h1>Hello</h1>\n</body>\n</html>' };
+
     const existing = await pool.query(
       `SELECT id FROM projects WHERE user_id = $1 AND kind = 'scratch' AND title = $2 LIMIT 1`,
       [req.user.id, projectTitle]
     );
-    if (existing.rows.length) return res.json({ projectId: existing.rows[0].id });
+
+    if (existing.rows.length) {
+      const projectId = existing.rows[0].id;
+      // Teachers always get a fresh copy so they can test starter changes.
+      // Students keep their work.
+      if (req.user.role === 'teacher') {
+        await pool.query('DELETE FROM files WHERE project_id = $1', [projectId]);
+        await seedFiles(projectId, starter);
+      }
+      return res.json({ projectId });
+    }
 
     // Create new scratch project
     const { rows } = await pool.query(
@@ -92,11 +105,6 @@ router.post('/try/:cardCode', requireAuth, async (req, res, next) => {
       [req.user.id, projectTitle]
     );
     const projectId = rows[0].id;
-
-    const starter = (starterJson && typeof starterJson === 'object')
-      ? starterJson
-      : { 'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="UTF-8"><title>Scratch</title></head>\n<body>\n  <h1>Hello</h1>\n</body>\n</html>' };
-
     await seedFiles(projectId, starter);
     res.json({ projectId });
   } catch (err) {
