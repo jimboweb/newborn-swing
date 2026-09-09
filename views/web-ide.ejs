@@ -295,6 +295,7 @@
     <div class="preview-pane">
       <div class="preview-header">
         <span>Preview</span>
+        <span id="preview-title" style="text-transform:none;letter-spacing:normal;color:#d4d4d4;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;"></span>
       </div>
       <iframe
         id="preview-frame"
@@ -413,19 +414,32 @@
       for (const f of files) {
         fileMap[f.path] = models[f.id] ? models[f.id].getValue() : f.content;
       }
+
+      // Only watch for infinite loops when the student's files actually have scripts
+      const hasUserScripts = Object.values(fileMap).some(c => /<script\b/i.test(c));
+
       const html = buildPreviewDoc(fileMap);
+
+      // Show <title> content in the preview header
+      const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+      const titleEl = document.getElementById('preview-title');
+      if (titleEl) titleEl.textContent = (titleMatch && titleMatch[1].trim()) || '';
+
       const iframe = document.getElementById('preview-frame');
 
-      // Watchdog: if heartbeat not received in 5s, replace with timeout message
       if (watchdogTimer) clearTimeout(watchdogTimer);
       iframe.srcdoc = html;
-      watchdogTimer = setTimeout(() => {
-        watchdogTimer = null;
-        iframe.srcdoc = `<html><body style="font-family:sans-serif;padding:2rem;color:#c0392b">
-          <h2 style="margin-bottom:0.5rem">Preview stopped</h2>
-          <p>A script might have an infinite loop. Fix your code and click <strong>Run</strong> to try again.</p>
-        </body></html>`;
-      }, 5000);
+
+      // Watchdog: only active when user scripts are present (infinite loop risk)
+      if (hasUserScripts) {
+        watchdogTimer = setTimeout(() => {
+          watchdogTimer = null;
+          iframe.srcdoc = `<html><body style="font-family:sans-serif;padding:2rem;color:#c0392b">
+            <h2 style="margin-bottom:0.5rem">Preview stopped</h2>
+            <p>A script might have an infinite loop. Fix your code and click <strong>Run</strong> to try again.</p>
+          </body></html>`;
+        }, 5000);
+      }
     }
 
     // Receive heartbeat from sandboxed iframe
