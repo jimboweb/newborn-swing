@@ -120,7 +120,7 @@ This means:
 frontmatter, not the filename, to identify which checkpoint the file belongs to. Always
 include `code: T3` (or whatever the code is) in the frontmatter.
 
-**Existing full card files:** `T0.md`, `T0a.md`, `T7.md`, `T3-headings.md`
+**Existing full card files:** `T0.md`, `T0a.md`, `T1a-what-a-tag-is.md`, `T3-headings.md`, `T7.md`
 
 ---
 
@@ -188,3 +188,51 @@ seeded with the card's `starter_json`. The behaviour differs by role:
 Scratch projects are keyed by `(user_id, kind='scratch', title='{CODE} scratch')`. The
 title uses the canonical DB code (e.g. `T3a scratch`, not `T3A scratch`) because the
 lookup is case-insensitive via `UPPER(cp.code) = UPPER($1)`.
+
+---
+
+## 9. Preview watchdog scoped to pages with scripts (`views/web-ide.ejs`)
+
+The preview pane has a 5-second watchdog that replaces the iframe with a "Preview
+stopped" error when the heartbeat postMessage is not received. The heartbeat is injected
+at the end of `<body>` and fires after all scripts have run.
+
+**Problem:** when a student deliberately breaks an HTML tag (e.g. deletes the `>` from
+a closing tag as part of a lesson exercise), the browser's HTML5 parser can stumble and
+fail to execute the injected heartbeat script, triggering the watchdog even though there
+is no infinite loop — just malformed markup.
+
+**The fix:** `refreshPreview()` checks whether any of the student's files contain a
+`<script` tag before arming the watchdog:
+
+```javascript
+const hasUserScripts = Object.values(fileMap).some(c => /<script\b/i.test(c));
+// ...
+if (hasUserScripts) {
+  watchdogTimer = setTimeout(() => { ... }, 5000);
+}
+```
+
+For pure HTML/CSS lessons (the majority of trunk cards), malformed tags now show exactly
+what a real browser would show rather than a confusing error message. The watchdog still
+activates for any project that includes JavaScript.
+
+---
+
+## 10. Page title shown in preview header (`views/web-ide.ejs`)
+
+The preview pane header previously just said "PREVIEW". Students working on the T2 card
+(page skeleton) and later cards have no way to see the effect of their `<title>` tag
+because the browser tab shows the IDE's own title.
+
+**The fix:** `refreshPreview()` extracts the `<title>` content from the rendered HTML
+with a regex and writes it into a `<span id="preview-title">` in the preview header:
+
+```javascript
+const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+const titleEl = document.getElementById('preview-title');
+if (titleEl) titleEl.textContent = (titleMatch && titleMatch[1].trim()) || '';
+```
+
+The preview header now shows e.g. `Blue Door Diner` alongside the "Preview" label,
+updating live as the student edits the `<title>` tag.
