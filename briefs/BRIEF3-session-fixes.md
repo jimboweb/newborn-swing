@@ -158,3 +158,33 @@ The student flow is now:
 
 Teachers see the cards page without the "Open Editor" button (it is wrapped in
 `<% if (user.role === 'student') { %>`).
+
+---
+
+## 7. Image upload in the card editor
+
+The admin card editor (`/admin/cards/:code`) now has an "🖼 Upload image" button in the
+top-right of the markdown editor area. Clicking it opens a file picker, uploads the
+selected image to Cloudinary via `POST /api/upload`, and inserts the resulting
+`![](url)` tag at the cursor position in the textarea. The preview updates immediately.
+
+This is the correct way to add images to card content. Do not use relative paths like
+`three-ways.png` — they resolve to nothing when the card is rendered in the browser.
+Always upload through this button to get a full Cloudinary URL.
+
+---
+
+## 8. "Try it" scratch project behaviour
+
+`POST /projects/try/:cardCode` creates or reopens a scratch project for the current user
+seeded with the card's `starter_json`. The behaviour differs by role:
+
+- **Teachers** — always get a fresh copy of the starter files. This allows a teacher to
+  update a card's starter JSON, click "Try it", and immediately verify the new files
+  without stale content from a previous click.
+- **Students** — always reopen their existing scratch project unchanged, preserving any
+  work they have done in the exercise.
+
+Scratch projects are keyed by `(user_id, kind='scratch', title='{CODE} scratch')`. The
+title uses the canonical DB code (e.g. `T3a scratch`, not `T3A scratch`) because the
+lookup is case-insensitive via `UPPER(cp.code) = UPPER($1)`.
