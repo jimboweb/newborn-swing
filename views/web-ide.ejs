@@ -299,7 +299,7 @@
       </div>
       <iframe
         id="preview-frame"
-        sandbox="allow-scripts"
+        sandbox="allow-scripts allow-same-origin"
         title="Live preview of your web page"
       ></iframe>
     </div>
@@ -432,16 +432,25 @@
       const iframe = document.getElementById('preview-frame');
 
       if (watchdogTimer) clearTimeout(watchdogTimer);
-      iframe.srcdoc = html;
+
+      // Use document.open/write/close instead of srcdoc so the browser does not
+      // record a navigation history entry for each preview refresh.
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(html);
+      doc.close();
 
       // Watchdog: only active when user scripts are present (infinite loop risk)
       if (hasUserScripts) {
         watchdogTimer = setTimeout(() => {
           watchdogTimer = null;
-          iframe.srcdoc = `<html><body style="font-family:sans-serif;padding:2rem;color:#c0392b">
+          const d = iframe.contentWindow.document;
+          d.open();
+          d.write(`<html><body style="font-family:sans-serif;padding:2rem;color:#c0392b">
             <h2 style="margin-bottom:0.5rem">Preview stopped</h2>
             <p>A script might have an infinite loop. Fix your code and click <strong>Run</strong> to try again.</p>
-          </body></html>`;
+          </body></html>`);
+          d.close();
         }, 5000);
       }
     }
