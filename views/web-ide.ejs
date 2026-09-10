@@ -370,11 +370,15 @@
           : '';
       });
 
-      // Watchdog heartbeat (fires after all scripts run)
-      const heartbeat = `<script>window.parent.postMessage({type:"preview-ready"},"*")<\/script>`;
-      html = /(<\/body>)/i.test(html)
-        ? html.replace(/<\/body>/i, heartbeat + '\n</body>')
-        : html + '\n' + heartbeat;
+      // Only inject heartbeat when the page has scripts; otherwise a malformed
+      // tag like <p (no >) causes the parser to treat <script> as an attribute
+      // name, leaving the heartbeat text visible on the page.
+      if (/<script\b/i.test(html)) {
+        const heartbeat = `<script>window.parent.postMessage({type:"preview-ready"},"*")<\/script>`;
+        html = /(<\/body>)/i.test(html)
+          ? html.replace(/<\/body>/i, heartbeat + '\n</body>')
+          : html + '\n' + heartbeat;
+      }
 
       return html;
     }
