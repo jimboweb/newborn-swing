@@ -22,7 +22,7 @@ async function run() {
     }
 
     await client.query(`DELETE FROM cards WHERE checkpoint_id = $1`, [cpId]);
-    await client.query(`DELETE FROM checkpoint_prereqs WHERE checkpoint_id = $1 OR prereq_id = $1`, [cpId]);
+    await client.query(`DELETE FROM checkpoint_prereqs WHERE checkpoint_id = $1 OR requires_checkpoint_id = $1`, [cpId]);
     await client.query(`DELETE FROM checkpoints WHERE id = $1`, [cpId]);
     console.log('remove_t5: T5 deleted.');
   } finally {
