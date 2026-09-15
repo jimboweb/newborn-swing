@@ -45,18 +45,22 @@ async function run() {
     if (full) {
       const kwArr  = Array.isArray(full.meta.keywords) ? full.meta.keywords : [];
       const starter = full.meta.starter ? JSON.stringify(full.meta.starter) : null;
+      // A full card file landing for a code takes it out of stub rotation
+      // for good — is_stub = false so no later deploy (or checkpoints_seed.json
+      // change) can silently overwrite a hand edit made through the admin
+      // card editor after this point.
       result = await pool.query(`
         UPDATE cards
-        SET body_md = $1, keywords = $2, starter_json = $3
+        SET body_md = $1, keywords = $2, starter_json = $3, is_stub = false
         WHERE checkpoint_id = (SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($4))
-          AND LEFT(body_md, 7) = '## Goal'
+          AND is_stub = true
       `, [full.body, kwArr, starter, cp.code]);
     } else {
       result = await pool.query(`
         UPDATE cards
         SET body_md = $1
         WHERE checkpoint_id = (SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($2))
-          AND LEFT(body_md, 7) = '## Goal'
+          AND is_stub = true
       `, [stubBody(cp), cp.code]);
     }
 

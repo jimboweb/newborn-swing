@@ -175,10 +175,10 @@ router.post('/cards/:code', requireTeacher, async (req, res, next) => {
       catch { return res.status(400).json({ error: 'Starter JSON is not valid JSON' }); }
     }
     await pool.query(`
-      INSERT INTO cards (checkpoint_id, body_md, keywords, video_url, starter_json)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO cards (checkpoint_id, body_md, keywords, video_url, starter_json, is_stub)
+      VALUES ($1, $2, $3, $4, $5, false)
       ON CONFLICT (checkpoint_id) DO UPDATE SET
-        body_md = $2, keywords = $3, video_url = $4, starter_json = $5
+        body_md = $2, keywords = $3, video_url = $4, starter_json = $5, is_stub = false
     `, [checkpointId, body_md || '', kwArray, video_url || null, starterJson]);
     res.json({ ok: true });
   } catch (err) { next(err); }

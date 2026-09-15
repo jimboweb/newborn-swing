@@ -133,5 +133,10 @@ CREATE TABLE IF NOT EXISTS cards (
   video_url     TEXT,
   video_seconds INTEGER,
   transcript    TEXT,
-  starter_json  JSONB
+  starter_json  JSONB,
+  -- true only for an auto-generated stub body nobody has touched yet.
+  -- Deploys may only overwrite body_md/keywords/starter_json while this is
+  -- true; any hand edit (in-app editor, or a full card file landing for the
+  -- first time) must flip it to false so it is never silently clobbered.
+  is_stub       BOOLEAN NOT NULL DEFAULT false
 );

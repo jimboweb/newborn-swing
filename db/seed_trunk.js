@@ -87,10 +87,10 @@ async function seed() {
     const starter = meta.starter ? meta.starter : null;
 
     await pool.query(`
-      INSERT INTO cards (checkpoint_id, body_md, keywords, video_url, starter_json)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO cards (checkpoint_id, body_md, keywords, video_url, starter_json, is_stub)
+      VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (checkpoint_id) DO NOTHING
-    `, [checkpointId, body, kwArr, meta.video_url || null, starter ? JSON.stringify(starter) : null]);
+    `, [checkpointId, body, kwArr, meta.video_url || null, starter ? JSON.stringify(starter) : null, !full]);
     console.log(`  Card ${cp.code} (${full ? 'full' : 'stub'})`);
   }
 
