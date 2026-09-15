@@ -239,12 +239,49 @@
       text-transform: uppercase;
       letter-spacing: 0.07em;
     }
+    .preview-tabs { display: flex; gap: 0.3rem; }
+    .view-tab {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      color: #9e9e9e;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 0.2rem 0.5rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .view-tab:hover { color: #d4d4d4; }
+    .view-tab.active { color: #d4d4d4; background: #3e3e3e; }
     #preview-frame {
       flex: 1;
       border: none;
       background: #fff;
       display: block;
     }
+    .tree-view { flex: 1; display: none; flex-direction: column; overflow: hidden; background: #1e1e1e; }
+    #preview-pane.mode-tree #preview-frame { display: none; }
+    #preview-pane.mode-tree .tree-view { display: flex; }
+    .tree-summary {
+      padding: 0.5rem 1rem 0;
+      font-size: 0.75rem;
+      color: #9e9e9e;
+      flex-shrink: 0;
+    }
+    .tree-summary.bad { color: #f44747; font-weight: 600; }
+    .tree-pane {
+      flex: 1;
+      overflow: auto;
+      margin: 0;
+      padding: 0.5rem 1rem 1rem;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: #d4d4d4;
+      white-space: pre;
+    }
+    .tag-added { background: #3a1f1f; color: #f44747; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -292,16 +329,23 @@
     </div>
 
     <!-- Preview -->
-    <div class="preview-pane">
+    <div class="preview-pane" id="preview-pane">
       <div class="preview-header">
-        <span>Preview</span>
-        <span id="preview-title" style="text-transform:none;letter-spacing:normal;color:#d4d4d4;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;"></span>
+        <div class="preview-tabs" role="tablist">
+          <button type="button" class="view-tab active" id="view-tab-preview" role="tab" aria-selected="true" onclick="setViewMode('preview')">Preview</button>
+          <button type="button" class="view-tab" id="view-tab-tree" role="tab" aria-selected="false" onclick="setViewMode('tree')">What the browser built</button>
+        </div>
+        <span id="preview-title" style="text-transform:none;letter-spacing:normal;color:#d4d4d4;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40%;"></span>
       </div>
       <iframe
         id="preview-frame"
         sandbox="allow-scripts allow-same-origin"
         title="Live preview of your web page"
       ></iframe>
+      <div class="tree-view" id="tree-view">
+        <p class="tree-summary" id="tree-summary"></p>
+        <pre class="tree-pane" id="tree-pane"></pre>
+      </div>
     </div>
 
   </div>
@@ -340,6 +384,148 @@
       else if (state === 'saved') { el.textContent = 'Saved ✓'; el.className = 'hdr-save'; }
       else if (state === 'error') { el.textContent = 'Save failed'; el.className = 'hdr-save error'; }
       else { el.textContent = ''; el.className = 'hdr-save'; }
+    }
+
+    // ── What the browser built ──
+    // Lifted from briefs/browser-tree-demo.html: uses the browser's own HTML
+    // parser (via DOMParser) to show the tree it actually built, with any tag
+    // it had to add to make the source well-formed marked in red. Read-only —
+    // never edits the student's file. Deliberately does not "tidy" anything;
+    // see BRIEF-browser-tree-panel.md for why.
+    const VOID = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+
+    function escTree(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Which opening tags in the SOURCE never got an explicit closing tag.
+    // Returns a Set of "tagname#n" keys, n counting that tag in source order.
+    function unclosedInSource(src) {
+      const stack = [];
+      const counts = {};
+      const explicitlyClosed = new Set();
+      const re = /<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)[^>]*?(\/?)\s*>/g;
+      let m;
+      while ((m = re.exec(src)) !== null) {
+        const closing = m[1] === '/';
+        const name = m[2].toLowerCase();
+        const selfClosed = m[3] === '/';
+        if (VOID.has(name) || selfClosed) continue;
+        if (!closing) {
+          counts[name] = (counts[name] || 0) + 1;
+          stack.push({ name, key: name + '#' + counts[name] });
+        } else {
+          for (let i = stack.length - 1; i >= 0; i--) {
+            if (stack[i].name === name) {
+              explicitlyClosed.add(stack[i].key);
+              stack.splice(i, 1);
+              break;
+            }
+          }
+        }
+      }
+      const missing = new Set();
+      for (const name in counts) {
+        for (let i = 1; i <= counts[name]; i++) {
+          const key = name + '#' + i;
+          if (!explicitlyClosed.has(key)) missing.add(key);
+        }
+      }
+      return missing;
+    }
+
+    function countSourceTags(src) {
+      const re = /<\s*(\/?)\s*[a-zA-Z][a-zA-Z0-9]*[^>]*?\/?\s*>/g;
+      let count = 0, m;
+      while ((m = re.exec(src)) !== null) {
+        if (m[1] !== '/') count++;
+      }
+      return count;
+    }
+
+    function buildBrowserTree(src) {
+      const missing = unclosedInSource(src);
+      const doc = new DOMParser().parseFromString(src, 'text/html');
+
+      const seen = {};
+      const lines = [];
+      let addedCount = 0;
+      let totalTags = 0;
+
+      function walk(node, depth) {
+        const pad = '  '.repeat(depth);
+        for (const child of node.childNodes) {
+          if (child.nodeType === 3) {
+            const text = child.textContent.replace(/\s+/g, ' ').trim();
+            if (text) lines.push(escTree(pad + text));
+            continue;
+          }
+          if (child.nodeType !== 1) continue;
+
+          const name = child.tagName.toLowerCase();
+          totalTags++;
+          seen[name] = (seen[name] || 0) + 1;
+          const key = name + '#' + seen[name];
+
+          let attrs = '';
+          for (const a of child.attributes) attrs += ' ' + a.name + '="' + a.value + '"';
+
+          if (VOID.has(name)) {
+            lines.push(escTree(pad + '<' + name + attrs + '>'));
+            continue;
+          }
+
+          lines.push(escTree(pad + '<' + name + attrs + '>'));
+          walk(child, depth + 1);
+
+          const closeLine = escTree(pad + '</' + name + '>');
+          const wasAdded = missing.has(key) || !new RegExp('<\\s*' + name + '[\\s>]', 'i').test(src);
+          if (wasAdded) {
+            addedCount++;
+            lines.push('<span class="tag-added">' + closeLine + '   ← the browser added this</span>');
+          } else {
+            lines.push(closeLine);
+          }
+        }
+      }
+
+      walk(doc.documentElement.parentNode, 0);
+      return { html: lines.join('\n'), addedCount, totalTags };
+    }
+
+    function updateTreePanel(fileMap) {
+      const summaryEl = document.getElementById('tree-summary');
+      const paneEl = document.getElementById('tree-pane');
+      const src = fileMap['index.html'];
+
+      if (!src) {
+        summaryEl.className = 'tree-summary';
+        summaryEl.textContent = '';
+        paneEl.innerHTML = '<span style="color:#666">Add an index.html file to see this here.</span>';
+        return;
+      }
+
+      const { html, addedCount, totalTags } = buildBrowserTree(src);
+      const sourceTagCount = countSourceTags(src);
+      paneEl.innerHTML = html;
+
+      if (addedCount === 0) {
+        summaryEl.className = 'tree-summary';
+        summaryEl.textContent = `${sourceTagCount} tags in your file, ${totalTags} in the browser's version. The browser did not have to add anything.`;
+      } else {
+        summaryEl.className = 'tree-summary bad';
+        summaryEl.textContent = `${sourceTagCount} tags in your file, ${totalTags} in the browser's version — it added ${addedCount} closing ${addedCount === 1 ? 'tag' : 'tags'} that you did not write.`;
+      }
+    }
+
+    function setViewMode(mode) {
+      document.getElementById('preview-pane').classList.toggle('mode-tree', mode === 'tree');
+      const previewTab = document.getElementById('view-tab-preview');
+      const treeTab = document.getElementById('view-tab-tree');
+      previewTab.classList.toggle('active', mode === 'preview');
+      previewTab.setAttribute('aria-selected', mode === 'preview');
+      treeTab.classList.toggle('active', mode === 'tree');
+      treeTab.setAttribute('aria-selected', mode === 'tree');
     }
 
     // ── Preview ──
@@ -423,6 +609,7 @@
       const hasUserScripts = Object.values(fileMap).some(c => /<script\b/i.test(c));
 
       const html = buildPreviewDoc(fileMap);
+      updateTreePanel(fileMap);
 
       // Show <title> content in the preview header
       const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);

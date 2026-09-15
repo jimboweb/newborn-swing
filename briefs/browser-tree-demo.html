@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What the browser built</title>
+<style>
+  :root {
+    --paper: #EAF1F7;
+    --ink: #16324F;
+    --muted: #3F6488;
+    --rule: #B9CEDF;
+    --card: #FFFFFF;
+    --warn-bg: #FFF6DC;
+    --warn-line: #E0A800;
+    --bad: #B02E1E;
+    --bad-bg: #FDEDEA;
+  }
+  :root:not([data-theme="light"]) { }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #101B26; --ink: #E7EEF5; --muted: #9FB6CC; --rule: #2C4256;
+      --card: #16232F; --warn-bg: #2E2712; --warn-line: #A9821A;
+      --bad: #FF8A78; --bad-bg: #37201C;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #101B26; --ink: #E7EEF5; --muted: #9FB6CC; --rule: #2C4256;
+    --card: #16232F; --warn-bg: #2E2712; --warn-line: #A9821A;
+    --bad: #FF8A78; --bad-bg: #37201C;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: var(--paper); color: var(--ink);
+    font-family: Verdana, Geneva, sans-serif; font-size: 15px; line-height: 1.5;
+  }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size: 26px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+
+  .panes { display: flex; flex-wrap: wrap; gap: 16px; }
+  .pane { flex: 1 1 380px; min-width: 0; }
+  .pane h2 {
+    font-family: Georgia, serif; font-size: 17px; margin: 0 0 6px;
+  }
+  .pane p.hint { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+
+  textarea, pre {
+    width: 100%; background: var(--card); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 4px;
+    font-family: "Courier New", Courier, monospace; font-size: 13.5px;
+    line-height: 1.6; padding: 12px; margin: 0;
+  }
+  textarea { height: 340px; resize: vertical; }
+  pre { height: 340px; overflow: auto; white-space: pre; }
+
+  .row { margin: 14px 0 6px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button {
+    font-family: Verdana, sans-serif; font-size: 14px;
+    background: var(--ink); color: var(--paper);
+    border: none; border-radius: 16px; padding: 8px 16px; cursor: pointer;
+  }
+  button.ghost { background: transparent; color: var(--ink); border: 2px solid var(--rule); }
+  button:focus-visible { outline: 3px solid var(--bad); outline-offset: 2px; }
+
+  .added { background: var(--bad-bg); color: var(--bad); font-weight: bold; }
+  .note {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-line);
+    padding: 12px 14px; margin: 16px 0 0; font-size: 14px;
+  }
+  .note strong { display: block; margin-bottom: 4px; }
+  .verdict { margin: 10px 0 0; font-size: 14px; }
+  .verdict.ok { color: var(--muted); }
+  .verdict.bad { color: var(--bad); font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>What the browser built</h1>
+<p class="sub">Paste your HTML on the left. The right side shows the page the browser actually made from it — tidied up so you can read the shape.</p>
+
+<div class="row">
+  <button id="run">Show what the browser built</button>
+  <button class="ghost" id="ex-ok">Load a correct page</button>
+  <button class="ghost" id="ex-bad">Load a page with a mistake</button>
+</div>
+
+<div class="panes">
+  <div class="pane">
+    <h2>What you wrote</h2>
+    <p class="hint">Your file, exactly as it is.</p>
+    <textarea id="src" spellcheck="false"></textarea>
+  </div>
+  <div class="pane">
+    <h2>What the browser built</h2>
+    <p class="hint">Anything in red is a tag the browser added because yours was missing.</p>
+    <pre id="out"></pre>
+    <p class="verdict" id="verdict"></p>
+  </div>
+</div>
+
+<div class="note">
+  <strong>How to use this</strong>
+  Compare the two shapes. If the browser had to add tags you did not write, it guessed at
+  what you meant — and its guess might not be your guess. Go back and write them yourself.
+</div>
+
+<script>
+const VOID = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+
+const OK = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Blue Door Diner</title>
+</head>
+<body>
+  <h2>Good to know</h2>
+  <ul>
+    <li>We are open every day.</li>
+    <li>Our bread is baked next door.</li>
+  </ul>
+</body>
+</html>`;
+
+const BAD = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Blue Door Diner</title>
+</head>
+<body>
+<h2>Good to know</h2>
+<ul>
+<li>We are open every day.
+<li>Our bread is baked next door.
+</body>
+</html>`;
+
+/* Find which opening tags in the SOURCE never got an explicit closing tag.
+   Returns a Set of "tagname#n" keys, n counting that tag in source order. */
+function unclosedInSource(src) {
+  const stack = [];
+  const counts = {};
+  const explicitlyClosed = new Set();
+  const re = /<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)[^>]*?(\/?)\s*>/g;
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const closing = m[1] === '/';
+    const name = m[2].toLowerCase();
+    const selfClosed = m[3] === '/';
+    if (VOID.has(name) || selfClosed) continue;
+    if (!closing) {
+      counts[name] = (counts[name] || 0) + 1;
+      stack.push({ name, key: name + '#' + counts[name] });
+    } else {
+      for (let i = stack.length - 1; i >= 0; i--) {
+        if (stack[i].name === name) {
+          explicitlyClosed.add(stack[i].key);
+          stack.splice(i, 1);
+          break;
+        }
+      }
+    }
+  }
+  const missing = new Set();
+  for (const name in counts) {
+    for (let i = 1; i <= counts[name]; i++) {
+      const key = name + '#' + i;
+      if (!explicitlyClosed.has(key)) missing.add(key);
+    }
+  }
+  return missing;
+}
+
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function build() {
+  const src = document.getElementById('src').value;
+  const out = document.getElementById('out');
+  const verdict = document.getElementById('verdict');
+
+  const missing = unclosedInSource(src);
+  const doc = new DOMParser().parseFromString(src, 'text/html');
+
+  const seen = {};
+  const lines = [];
+  let addedCount = 0;
+
+  function walk(node, depth) {
+    const pad = '  '.repeat(depth);
+    for (const child of node.childNodes) {
+      if (child.nodeType === 3) {
+        const text = child.textContent.replace(/\s+/g, ' ').trim();
+        if (text) lines.push(esc(pad + text));
+        continue;
+      }
+      if (child.nodeType !== 1) continue;
+
+      const name = child.tagName.toLowerCase();
+      seen[name] = (seen[name] || 0) + 1;
+      const key = name + '#' + seen[name];
+
+      let attrs = '';
+      for (const a of child.attributes) attrs += ' ' + a.name + '="' + a.value + '"';
+
+      if (VOID.has(name)) {
+        lines.push(esc(pad + '<' + name + attrs + '>'));
+        continue;
+      }
+
+      lines.push(esc(pad + '<' + name + attrs + '>'));
+      walk(child, depth + 1);
+
+      const closeLine = esc(pad + '</' + name + '>');
+      const wasAdded = missing.has(key) || !new RegExp('<\\s*' + name + '[\\s>]', 'i').test(src);
+      if (wasAdded) {
+        addedCount++;
+        lines.push('<span class="added">' + closeLine + '   \u2190 the browser added this</span>');
+      } else {
+        lines.push(closeLine);
+      }
+    }
+  }
+
+  walk(doc.documentElement.parentNode, 0);
+  out.innerHTML = lines.join('\n');
+
+  if (addedCount === 0) {
+    verdict.className = 'verdict ok';
+    verdict.textContent = 'The browser did not have to add anything. Your shape and its shape match.';
+  } else {
+    verdict.className = 'verdict bad';
+    verdict.textContent = 'The browser added ' + addedCount +
+      (addedCount === 1 ? ' closing tag' : ' closing tags') + ' that you did not write.';
+  }
+}
+
+document.getElementById('run').addEventListener('click', build);
+document.getElementById('ex-ok').addEventListener('click', () => {
+  document.getElementById('src').value = OK; build();
+});
+document.getElementById('ex-bad').addEventListener('click', () => {
+  document.getElementById('src').value = BAD; build();
+});
+
+document.getElementById('src').value = BAD;
+build();
+</script>
+
+</body>
+</html>
