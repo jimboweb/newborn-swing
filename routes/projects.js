@@ -130,6 +130,28 @@ router.get('/student/:studentId', requireTeacher, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /projects/student/:studentId/scratch/:code — teacher read-only view of a
+// student's "Try it" work for one specific card
+router.get('/student/:studentId/scratch/:code', requireTeacher, async (req, res, next) => {
+  try {
+    const title = `${req.params.code} scratch`;
+    const proj = await pool.query(
+      `SELECT * FROM projects WHERE user_id = $1 AND kind = 'scratch' AND UPPER(title) = UPPER($2) LIMIT 1`,
+      [req.params.studentId, title]
+    );
+    if (!proj.rows.length) {
+      return res.status(404).send(`This student hasn't opened "Try it" for ${req.params.code} yet.`);
+    }
+    const project = proj.rows[0];
+    const { rows } = await pool.query(
+      'SELECT id, path, content FROM files WHERE project_id = $1 ORDER BY path ASC',
+      [project.id]
+    );
+    const filesJson = JSON.stringify(rows).replace(/<\//g, '<\\/');
+    res.render('web-ide', { project, filesJson, cardCode: null, readonly: true });
+  } catch (err) { next(err); }
+});
+
 // GET /projects/:id — serve the web IDE
 router.get('/:id', requireAuth, requireProjectOwner, async (req, res, next) => {
   try {

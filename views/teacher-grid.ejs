@@ -250,7 +250,8 @@
       document.getElementById('modal-sub').textContent   = `Current status: ${state.replace(/_/g,' ')}`;
 
       const docRow = document.getElementById('modal-doc-row');
-      let docHtml = `<a class="modal-doc-link" href="/projects/student/${escHtml(modalStudentId)}" target="_blank" rel="noopener">&#128187; View HTML project</a>`;
+      let docHtml = `<a class="modal-doc-link" href="/projects/student/${escHtml(modalStudentId)}/scratch/${escHtml(modalCode)}" target="_blank" rel="noopener">&#128187; View ${escHtml(modalCode)} work</a>`;
+      docHtml += ` <a class="modal-doc-link" href="/projects/student/${escHtml(modalStudentId)}" target="_blank" rel="noopener">&#127968; View full website</a>`;
       if (doc) {
         docHtml += ` <a class="modal-doc-link" href="${escHtml(doc)}" target="_blank" rel="noopener">&#128196; Open Google Doc</a>`;
       }
