@@ -22,9 +22,28 @@ function parseCardFile(filename) {
 }
 
 async function migrate() {
+  // This script runs on every deploy (Procfile release line), but the
+  // "body starts with ## Goal" backfill below is only safe to run ONCE,
+  // right after the column is added — every card's body starts with
+  // "## Goal" by convention, hand-edited or not, so re-running this against
+  // an already-populated column would re-flag hand-edited stub-only cards
+  // (no full file, e.g. T1/T2/T4/T8) as is_stub = true and hand them straight
+  // back to update_card_stubs.js to be clobbered. That happened once already
+  // (2026-09-16 deploy) before this guard was added.
+  const { rows: existing } = await pool.query(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'cards' AND column_name = 'is_stub'
+  `);
+  const columnAlreadyExisted = existing.length > 0;
+
   await pool.query(`
     ALTER TABLE cards ADD COLUMN IF NOT EXISTS is_stub BOOLEAN NOT NULL DEFAULT false;
   `);
+
+  if (columnAlreadyExisted) {
+    console.log('is_stub column already present — skipping one-time backfill.');
+    return;
+  }
 
   // Codes with a full card file are never a stub, no matter what body_md
   // currently starts with — this is exactly the case the old heuristic got
