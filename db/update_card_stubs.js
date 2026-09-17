@@ -3,6 +3,7 @@ const fs   = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 const pool = require('./index');
+const { snapshotCardRevision } = require('./snapshot_card_revision');
 
 const SEED      = require('./checkpoints_seed.json');
 const CARDS_DIR = path.join(__dirname, '..', 'content', 'cards');
@@ -41,6 +42,16 @@ async function run() {
     if (!cp.goal) continue;
     const full = FULL_CARDS[cp.code];
 
+    const { rows: cpRows } = await pool.query('SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($1)', [cp.code]);
+    if (!cpRows.length) continue;
+    const checkpointId = cpRows[0].id;
+
+    // Snapshot whatever is there now before this script touches it — even
+    // though the WHERE is_stub = true guard below should mean this only
+    // ever overwrites a genuine untouched stub, this snapshot means a future
+    // bug in that guard can never destroy content outright, only supersede it.
+    await snapshotCardRevision(pool, checkpointId, 'seed_stub_refresh');
+
     let result;
     if (full) {
       const kwArr  = Array.isArray(full.meta.keywords) ? full.meta.keywords : [];
@@ -52,16 +63,14 @@ async function run() {
       result = await pool.query(`
         UPDATE cards
         SET body_md = $1, keywords = $2, starter_json = $3, is_stub = false
-        WHERE checkpoint_id = (SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($4))
-          AND is_stub = true
-      `, [full.body, kwArr, starter, cp.code]);
+        WHERE checkpoint_id = $4 AND is_stub = true
+      `, [full.body, kwArr, starter, checkpointId]);
     } else {
       result = await pool.query(`
         UPDATE cards
         SET body_md = $1
-        WHERE checkpoint_id = (SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($2))
-          AND is_stub = true
-      `, [stubBody(cp), cp.code]);
+        WHERE checkpoint_id = $2 AND is_stub = true
+      `, [stubBody(cp), checkpointId]);
     }
 
     if (result.rowCount > 0) {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { requireTeacher } = require('../middleware/auth');
+const { snapshotCardRevision } = require('../db/snapshot_card_revision');
 
 // ── Ladder editor ──────────────────────────────────────────────────────────
 
@@ -174,12 +175,59 @@ router.post('/cards/:code', requireTeacher, async (req, res, next) => {
       try { starterJson = JSON.parse(starter_json.trim()); }
       catch { return res.status(400).json({ error: 'Starter JSON is not valid JSON' }); }
     }
+    await snapshotCardRevision(pool, checkpointId, 'admin_edit');
     await pool.query(`
       INSERT INTO cards (checkpoint_id, body_md, keywords, video_url, starter_json, is_stub)
       VALUES ($1, $2, $3, $4, $5, false)
       ON CONFLICT (checkpoint_id) DO UPDATE SET
         body_md = $2, keywords = $3, video_url = $4, starter_json = $5, is_stub = false
     `, [checkpointId, body_md || '', kwArray, video_url || null, starterJson]);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// ── Card revision history ─────────────────────────────────────────────────
+
+router.get('/cards/:code/revisions', requireTeacher, async (req, res, next) => {
+  try {
+    const cp = await pool.query('SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($1)', [req.params.code]);
+    if (!cp.rows.length) return res.status(404).json({ error: 'Checkpoint not found' });
+    const { rows } = await pool.query(`
+      SELECT id, LEFT(body_md, 100) AS preview, LENGTH(body_md) AS body_len, source, saved_at
+      FROM card_revisions WHERE checkpoint_id = $1 ORDER BY saved_at DESC LIMIT 50
+    `, [cp.rows[0].id]);
+    res.json({ ok: true, revisions: rows });
+  } catch (err) { next(err); }
+});
+
+router.get('/cards/:code/revisions/:id', requireTeacher, async (req, res, next) => {
+  try {
+    const cp = await pool.query('SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($1)', [req.params.code]);
+    if (!cp.rows.length) return res.status(404).json({ error: 'Checkpoint not found' });
+    const { rows } = await pool.query(
+      'SELECT * FROM card_revisions WHERE id = $1 AND checkpoint_id = $2', [req.params.id, cp.rows[0].id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Revision not found' });
+    res.json({ ok: true, revision: rows[0] });
+  } catch (err) { next(err); }
+});
+
+router.post('/cards/:code/revisions/:id/restore', requireTeacher, async (req, res, next) => {
+  try {
+    const cp = await pool.query('SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($1)', [req.params.code]);
+    if (!cp.rows.length) return res.status(404).json({ error: 'Checkpoint not found' });
+    const checkpointId = cp.rows[0].id;
+    const rev = await pool.query(
+      'SELECT * FROM card_revisions WHERE id = $1 AND checkpoint_id = $2', [req.params.id, checkpointId]
+    );
+    if (!rev.rows.length) return res.status(404).json({ error: 'Revision not found' });
+    const r = rev.rows[0];
+    // Snapshot the current (about-to-be-replaced) state too, so restoring is itself undoable.
+    await snapshotCardRevision(pool, checkpointId, 'pre_restore');
+    await pool.query(`
+      UPDATE cards SET body_md = $1, keywords = $2, video_url = $3, starter_json = $4, is_stub = false
+      WHERE checkpoint_id = $5
+    `, [r.body_md, r.keywords, r.video_url, r.starter_json, checkpointId]);
     res.json({ ok: true });
   } catch (err) { next(err); }
 });

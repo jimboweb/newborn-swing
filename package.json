@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:init": "node db/init.js"
+    "db:init": "node db/init.js",
+    "seed:cards": "node db/seed_trunk.js && node db/update_card_stubs.js"
   },
   "engines": {
     "node": ">=20"
