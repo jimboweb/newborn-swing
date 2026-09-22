@@ -74,6 +74,13 @@
     </a>
     <% } %>
 
+    <% for (const p of problems) { %>
+    <a href="<%= p.mode === 'spec' ? `/spec/problems/${p.id}` : `/problems/${p.id}` %>" class="project-tile">
+      <%= p.title %>
+      <span class="tile-arrow">›</span>
+    </a>
+    <% } %>
+
   </div>
 
 </body>

@@ -32,6 +32,11 @@
     .btn-primary:hover { background: #2471a3; }
     .btn-cancel { color: #555; }
     .btn-cancel:hover { color: #000; }
+    .mode-toggle { display: flex; gap: 1.5rem; margin-bottom: 1.25rem; }
+    .mode-toggle label { display: flex; align-items: center; gap: 0.4rem; font-weight: 400; }
+    .spec-fields { border: 1px solid #d6c8f0; background: #faf7ff; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+    .spec-fields h3 { font-size: 0.95rem; margin-bottom: 1rem; color: #5b21b6; }
+    .checkbox-row { display: flex; align-items: center; gap: 0.5rem; font-weight: 400; font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -68,10 +73,47 @@
       <input type="number" id="time_limit_seconds" name="time_limit_seconds" min="1" max="60" required value="<%= problem ? problem.time_limit_seconds : 5 %>">
     </div>
 
-    <h3 style="margin-bottom:0.75rem">Test Cases</h3>
-    <div id="test-cases"></div>
+    <div class="field">
+      <label>Mode</label>
+      <div class="mode-toggle">
+        <label><input type="radio" name="mode" value="standard" id="mode-standard" <%= (!problem || problem.mode !== 'spec') ? 'checked' : '' %>> Standard (student writes code)</label>
+        <label><input type="radio" name="mode" value="spec" id="mode-spec" <%= (problem && problem.mode === 'spec') ? 'checked' : '' %>> Spec mode (student writes a specification)</label>
+      </div>
+    </div>
 
-    <button type="button" class="add-btn" id="add-case">+ Add Test Case</button>
+    <div class="spec-fields" id="spec-fields">
+      <h3>Spec mode settings</h3>
+      <div class="field">
+        <label for="function_name">Function name</label>
+        <input type="text" id="function_name" name="function_name" placeholder="e.g. calculate_change"
+          value="<%= problem && problem.function_name ? problem.function_name : '' %>" style="font-family:monospace">
+      </div>
+      <div class="field">
+        <label for="param_names">Parameter names <span style="font-weight:400;color:#888">(comma-separated, in order)</span></label>
+        <input type="text" id="param_names" name="param_names" placeholder="e.g. payment, price"
+          value="<%= problem && problem.param_names ? problem.param_names.join(', ') : '' %>" style="font-family:monospace">
+      </div>
+      <div class="field">
+        <label for="reference_solution">Reference solution <span style="font-weight:400;color:#888">(server-side only, never shown to students)</span></label>
+        <textarea id="reference_solution" name="reference_solution" rows="8" placeholder="def calculate_change(payment, price):&#10;    ..." style="font-family:monospace;font-size:0.85rem"><%= problem && problem.reference_solution ? problem.reference_solution : '' %></textarea>
+      </div>
+      <div class="field" style="max-width:200px">
+        <label for="min_examples">Minimum test cases required</label>
+        <input type="number" id="min_examples" name="min_examples" min="1"
+          value="<%= problem && problem.min_examples ? problem.min_examples : 4 %>">
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" name="require_teacher_approval" <%= problem && problem.require_teacher_approval ? 'checked' : '' %>>
+        Require teacher approval before a spec is shared with other students
+      </label>
+    </div>
+
+    <div id="standard-fields">
+      <h3 style="margin-bottom:0.75rem">Test Cases</h3>
+      <div id="test-cases"></div>
+
+      <button type="button" class="add-btn" id="add-case">+ Add Test Case</button>
+    </div>
 
     <div class="actions">
       <button type="submit" class="btn btn-primary"><%= problem ? 'Save Changes' : 'Create Problem' %></button>
@@ -116,6 +158,15 @@
     } else {
       addTestCase();
     }
+
+    function syncModeFields() {
+      const isSpec = document.getElementById('mode-spec').checked;
+      document.getElementById('spec-fields').style.display = isSpec ? 'block' : 'none';
+      document.getElementById('standard-fields').style.display = isSpec ? 'none' : 'block';
+    }
+    document.getElementById('mode-standard').addEventListener('change', syncModeFields);
+    document.getElementById('mode-spec').addEventListener('change', syncModeFields);
+    syncModeFields();
   </script>
 </body>
 </html>

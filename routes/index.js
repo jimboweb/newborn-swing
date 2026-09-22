@@ -33,7 +33,7 @@ router.get('/dashboard', requireAuth, async (req, res, next) => {
   try {
     const [problemResult, seqResult] = await Promise.all([
       pool.query(
-        `SELECT DISTINCT ON (p.id) p.id, p.title, p.description,
+        `SELECT DISTINCT ON (p.id) p.id, p.title, p.description, p.mode,
                 s.passed_count, s.total_count
          FROM problems p
          JOIN assignments a ON a.problem_id = p.id

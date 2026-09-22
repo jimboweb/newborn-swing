@@ -64,14 +64,18 @@
       <tbody>
         <% problems.forEach(p => { %>
           <tr>
-            <td><strong><%= p.title %></strong></td>
+            <td><strong><%= p.title %></strong><% if (p.mode === 'spec') { %> <span style="background:#ede9fe;color:#5b21b6;font-size:0.7rem;font-weight:700;padding:0.1rem 0.4rem;border-radius:4px">SPEC</span><% } %></td>
             <td class="desc"><%= p.description %></td>
             <td style="white-space:nowrap;font-size:0.85rem;color:#888"><%= new Date(p.created_at).toLocaleDateString() %></td>
             <td>
               <div class="actions">
                 <a href="/problems/<%= p.id %>/edit" class="btn-edit">Edit</a>
                 <a href="/problems/<%= p.id %>/assignments" class="btn-assign">Assignments</a>
-                <a href="/problems/<%= p.id %>/submissions" class="btn btn-submissions">Submissions</a>
+                <% if (p.mode === 'spec') { %>
+                  <a href="/spec/problems/<%= p.id %>/review" class="btn btn-submissions">Review specs</a>
+                <% } else { %>
+                  <a href="/problems/<%= p.id %>/submissions" class="btn btn-submissions">Submissions</a>
+                <% } %>
                 <form method="POST" action="/problems/<%= p.id %>/delete" onsubmit="return confirm('Delete this problem and all its submissions?')">
                   <button type="submit" class="btn btn-delete">Delete</button>
                 </form>

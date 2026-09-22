@@ -109,14 +109,6 @@ CREATE TABLE IF NOT EXISTS files (
   UNIQUE(project_id, path)
 );
 
-CREATE TABLE IF NOT EXISTS progress (
-  student_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  checkpoint_id INTEGER NOT NULL REFERENCES checkpoints(id) ON DELETE CASCADE,
-  state         TEXT NOT NULL DEFAULT 'in_progress',
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (student_id, checkpoint_id)
-);
-
 CREATE TABLE IF NOT EXISTS checkpoints (
   id      SERIAL PRIMARY KEY,
   code    TEXT UNIQUE NOT NULL,
@@ -139,4 +131,12 @@ CREATE TABLE IF NOT EXISTS cards (
   -- true; any hand edit (in-app editor, or a full card file landing for the
   -- first time) must flip it to false so it is never silently clobbered.
   is_stub       BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS progress (
+  student_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  checkpoint_id INTEGER NOT NULL REFERENCES checkpoints(id) ON DELETE CASCADE,
+  state         TEXT NOT NULL DEFAULT 'in_progress',
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (student_id, checkpoint_id)
 );

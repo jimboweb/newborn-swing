@@ -1,6 +1,7 @@
 // One-time migration: remove T5 "Putting one tag inside another".
 // Nesting is now taught as part of the lists lesson (T4).
 // Safe to re-run — exits cleanly if T5 is already gone.
+require('dotenv').config();
 const pool = require('./index');
 
 async function run() {

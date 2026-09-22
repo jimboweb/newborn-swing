@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= problem.title %> — Spec Mode</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: sans-serif; max-width: 820px; margin: 0 auto 3rem; padding: 0 1rem; color: #222; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; margin-bottom: 1rem; }
+    nav h1 { font-size: 1.1rem; }
+    nav a { color: #555; text-decoration: none; font-size: 0.85rem; }
+    h2 { font-size: 1.3rem; margin-bottom: 0.25rem; }
+    .desc { color: #555; margin-bottom: 1.5rem; white-space: pre-wrap; }
+    section { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; background: #fff; }
+    section h3 { font-size: 1.05rem; margin-bottom: 1rem; }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; margin-bottom: 1rem; }
+    .badge-needs_revision { background: #fee2e2; color: #991b1b; }
+    .badge-awaiting_approval { background: #fef3c7; color: #92400e; }
+    .badge-shared { background: #d1fae5; color: #065f46; }
+    .feedback-list { list-style: none; margin-bottom: 1rem; }
+    .feedback-list li { padding: 0.5rem 0.75rem; border-radius: 5px; margin-bottom: 0.4rem; font-size: 0.85rem; font-family: monospace; }
+    .feedback-pass { background: #ecfdf5; color: #065f46; }
+    .feedback-fail { background: #fef2f2; color: #991b1b; }
+    .teacher-comment { background: #fff7ed; border: 1px solid #fdba74; border-radius: 5px; padding: 0.6rem 0.9rem; font-size: 0.88rem; color: #9a3412; margin-bottom: 1rem; white-space: pre-wrap; }
+    label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.88rem; }
+    textarea, input[type=text] { width: 100%; padding: 0.5rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; font-family: inherit; }
+    .field { margin-bottom: 1rem; }
+    .case-row { border: 1px solid #ddd; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 0.6rem; }
+    .case-row-head { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+    .case-row-head span { font-weight: 600; font-size: 0.85rem; color: #444; }
+    .remove-btn { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 0.82rem; }
+    .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; margin-bottom: 0.6rem; }
+    .param-grid label { font-size: 0.78rem; font-weight: 500; color: #666; }
+    .param-grid input { font-family: monospace; font-size: 0.85rem; }
+    .expect-row { display: flex; align-items: center; gap: 1.25rem; font-size: 0.85rem; }
+    .expect-row label { display: flex; align-items: center; gap: 0.35rem; font-weight: 400; margin: 0; }
+    .expect-row input[type=text] { width: 160px; font-family: monospace; }
+    .add-btn { background: none; border: 1px dashed #aaa; color: #555; padding: 0.4rem 0.9rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; margin: 0.5rem 0 1.25rem; }
+    .btn { display: inline-block; padding: 0.5rem 1.2rem; border-radius: 4px; font-size: 0.9rem; cursor: pointer; border: none; }
+    .btn-primary { background: #2980b9; color: #fff; }
+    pre.docstring { background: #1e1e1e; color: #d4d4d4; padding: 1rem 1.25rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; margin-bottom: 1rem; }
+    .placeholder { color: #888; font-style: italic; padding: 1rem 0; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Newborn Swing</h1>
+    <span><a href="/dashboard">&#8592; Dashboard</a> &nbsp;|&nbsp; <%= user.name %> &nbsp;|&nbsp; <a href="/auth/logout">Sign out</a></span>
+  </nav>
+
+  <h2><%= problem.title %></h2>
+  <div class="desc"><%= problem.description %></div>
+
+  <section>
+    <h3>Your specification</h3>
+
+    <% if (spec) { %>
+      <span class="badge badge-<%= spec.status %>">
+        <%= spec.status === 'needs_revision' ? 'Needs revision' : spec.status === 'awaiting_approval' ? 'Awaiting teacher approval' : 'Shared' %>
+      </span>
+
+      <% if (spec.teacher_comment) { %>
+        <div class="teacher-comment"><strong>Teacher feedback:</strong><br><%= spec.teacher_comment %></div>
+      <% } %>
+
+      <% if (spec.auto_check_details && spec.auto_check_details.length) { %>
+        <ul class="feedback-list">
+          <% spec.auto_check_details.forEach(d => { %>
+            <li class="<%= d.passed ? 'feedback-pass' : 'feedback-fail' %>">
+              <%= d.passed ? '✓' : '✗' %> <%= d.message || 'Passed' %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    <% } %>
+
+    <form method="POST" action="/spec/problems/<%= problem.id %>/specs">
+      <div class="field">
+        <label for="description_text">Describe the general rule</label>
+        <textarea id="description_text" name="description_text" rows="4"
+          placeholder="e.g. Calculates change owed... if payment is less than price, the payment is insufficient and should be treated as an error."
+        ><%= spec ? spec.description_text : '' %></textarea>
+      </div>
+
+      <label>Examples <span style="font-weight:400;color:#888">(minimum <%= problem.min_examples || 1 %>)</span></label>
+      <div id="cases"></div>
+      <button type="button" class="add-btn" id="add-case">+ Add example</button>
+
+      <div>
+        <button type="submit" class="btn btn-primary">Submit specification</button>
+      </div>
+    </form>
+  </section>
+
+  <section>
+    <h3>Your assignment</h3>
+    <% if (!assignment) { %>
+      <p class="placeholder">Waiting on a partner's spec — check back after your teacher generates a round.</p>
+    <% } else { %>
+      <p style="margin-bottom:0.75rem;color:#555;font-size:0.9rem">Implement this specification, written by <strong><%= assignment.authoredSpec.author_name %></strong>:</p>
+      <pre class="docstring"><%= assignment.docstring %></pre>
+
+      <% if (assignment.implementation && assignment.implementation.test_result) { %>
+        <% const tr = assignment.implementation.test_result; %>
+        <p style="font-size:0.88rem;margin-bottom:0.5rem"><strong><%= tr.passed %> / <%= tr.total %></strong> cases passed</p>
+        <ul class="feedback-list">
+          <% tr.details.forEach(d => { %>
+            <li class="<%= d.passed ? 'feedback-pass' : 'feedback-fail' %>">
+              <%= d.passed ? '✓' : '✗' %> <%= d.message || 'Passed' %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+
+      <form method="POST" action="/spec/problems/<%= problem.id %>/implement">
+        <div class="field">
+          <label for="code_text">Your implementation</label>
+          <textarea id="code_text" name="code_text" rows="10" style="font-family:monospace;font-size:0.88rem"
+          ><%= assignment.implementation ? assignment.implementation.code_text : `def ${problem.function_name}(${problem.param_names.join(', ')}):\n    ` %></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit implementation</button>
+      </form>
+    <% } %>
+  </section>
+
+  <script>
+    const paramNames = <%- JSON.stringify(problem.param_names) %>;
+    const existingCases = <%- JSON.stringify(specTestCases) %>;
+
+    // Each row's two radios need a name unique to that row (radios with the
+    // same name are mutually exclusive across the WHOLE page, not per row),
+    // but names must also stay contiguous 0..N-1 in DOM order so the server
+    // can line them up with the param input arrays after rows are removed —
+    // so every add/remove renumbers all rows by their current DOM position.
+    function renumberCases() {
+      const rows = document.querySelectorAll('#cases .case-row');
+      rows.forEach((row, i) => {
+        row.querySelector('.case-row-head span').textContent = `Example ${i + 1}`;
+        row.querySelectorAll('input[type=radio]').forEach(r => { r.name = `expect_type_${i}`; });
+      });
+    }
+
+    function addCase(inputs = {}, expectType = 'returns', expectedValue = '') {
+      const div = document.createElement('div');
+      div.className = 'case-row';
+      const paramFields = paramNames.map(p => `
+        <div>
+          <label>${p}</label>
+          <input type="text" name="input_${p}" value="${(inputs[p] ?? '').toString().replace(/"/g,'&quot;')}">
+        </div>
+      `).join('');
+      div.innerHTML = `
+        <div class="case-row-head">
+          <span>Example</span>
+          <button type="button" class="remove-btn" onclick="this.closest('.case-row').remove(); renumberCases();">Remove</button>
+        </div>
+        <div class="param-grid">${paramFields}</div>
+        <div class="expect-row">
+          <label><input type="radio" value="returns" ${expectType !== 'raises' ? 'checked' : ''} onchange="this.closest('.case-row').querySelector('.expected-value').style.display = 'inline-block'"> Returns:
+            <input type="text" class="expected-value" name="expected_value" value="${String(expectedValue ?? '').replace(/"/g,'&quot;')}" style="${expectType === 'raises' ? 'display:none' : ''}">
+          </label>
+          <label><input type="radio" value="raises" ${expectType === 'raises' ? 'checked' : ''} onchange="this.closest('.case-row').querySelector('.expected-value').style.display = 'none'"> Should cause an error</label>
+        </div>
+      `;
+      document.getElementById('cases').appendChild(div);
+      renumberCases();
+    }
+
+    document.getElementById('add-case').addEventListener('click', () => addCase());
+
+    if (existingCases.length > 0) {
+      existingCases.forEach(c => addCase(c.inputs, c.expect_type, c.expected_value));
+    } else {
+      addCase();
+    }
+  </script>
+</body>
+</html>

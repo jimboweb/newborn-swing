@@ -7,26 +7,47 @@ router.get('/new', requireTeacher, (req, res) => {
   res.render('problem-form', { user: req.user, problem: null, testCases: [] });
 });
 
+function parseSpecFields(body) {
+  const mode = body.mode === 'spec' ? 'spec' : 'standard';
+  const minExamples = body.min_examples && body.min_examples.trim() !== '' ? parseInt(body.min_examples, 10) : null;
+  const paramNames = (body.param_names || '').split(',').map(s => s.trim()).filter(Boolean);
+  return {
+    mode,
+    reference_solution: mode === 'spec' ? (body.reference_solution || '') : null,
+    min_examples: mode === 'spec' ? minExamples : null,
+    require_teacher_approval: mode === 'spec' && body.require_teacher_approval === 'on',
+    function_name: mode === 'spec' ? (body.function_name || '').trim() : null,
+    param_names: mode === 'spec' ? paramNames : [],
+  };
+}
+
 router.post('/', requireTeacher, async (req, res, next) => {
   const { title, description, starter_code, default_stdin, time_limit_seconds, inputs, expected_outputs, is_hidden } = req.body;
   const timeLimit = Math.max(1, Math.min(60, parseInt(time_limit_seconds, 10) || 5));
+  const spec = parseSpecFields(req.body);
   try {
     const result = await pool.query(
-      'INSERT INTO problems (title, description, starter_code, default_stdin, time_limit_seconds, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, description, starter_code || '', default_stdin || '', timeLimit, req.user.id]
+      `INSERT INTO problems
+         (title, description, starter_code, default_stdin, time_limit_seconds, created_by,
+          mode, reference_solution, min_examples, require_teacher_approval, function_name, param_names)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [title, description, starter_code || '', default_stdin || '', timeLimit, req.user.id,
+       spec.mode, spec.reference_solution, spec.min_examples, spec.require_teacher_approval, spec.function_name, spec.param_names]
     );
     const problemId = result.rows[0].id;
 
-    const inputs_ = [].concat(inputs || []);
-    const outputs_ = [].concat(expected_outputs || []);
-    const hidden_ = [].concat(is_hidden || []);
+    if (spec.mode === 'standard') {
+      const inputs_ = [].concat(inputs || []);
+      const outputs_ = [].concat(expected_outputs || []);
+      const hidden_ = [].concat(is_hidden || []);
 
-    for (let i = 0; i < inputs_.length; i++) {
-      if (outputs_[i] === undefined) continue;
-      await pool.query(
-        'INSERT INTO test_cases (problem_id, input, expected_output, is_hidden) VALUES ($1, $2, $3, $4)',
-        [problemId, inputs_[i], outputs_[i], hidden_[i] === 'on']
-      );
+      for (let i = 0; i < inputs_.length; i++) {
+        if (outputs_[i] === undefined) continue;
+        await pool.query(
+          'INSERT INTO test_cases (problem_id, input, expected_output, is_hidden) VALUES ($1, $2, $3, $4)',
+          [problemId, inputs_[i], outputs_[i], hidden_[i] === 'on']
+        );
+      }
     }
 
     res.redirect('/dashboard');
@@ -125,24 +146,33 @@ router.get('/:id/edit', requireTeacher, async (req, res, next) => {
 router.post('/:id/edit', requireTeacher, async (req, res, next) => {
   const { title, description, starter_code, default_stdin, time_limit_seconds, inputs, expected_outputs, is_hidden } = req.body;
   const timeLimit = Math.max(1, Math.min(60, parseInt(time_limit_seconds, 10) || 5));
+  const spec = parseSpecFields(req.body);
   try {
     await pool.query(
-      'UPDATE problems SET title = $1, description = $2, starter_code = $3, default_stdin = $4, time_limit_seconds = $5 WHERE id = $6 AND created_by = $7',
-      [title, description, starter_code || '', default_stdin || '', timeLimit, req.params.id, req.user.id]
+      `UPDATE problems SET
+         title = $1, description = $2, starter_code = $3, default_stdin = $4, time_limit_seconds = $5,
+         mode = $6, reference_solution = $7, min_examples = $8, require_teacher_approval = $9,
+         function_name = $10, param_names = $11
+       WHERE id = $12 AND created_by = $13`,
+      [title, description, starter_code || '', default_stdin || '', timeLimit,
+       spec.mode, spec.reference_solution, spec.min_examples, spec.require_teacher_approval, spec.function_name, spec.param_names,
+       req.params.id, req.user.id]
     );
 
-    await pool.query('DELETE FROM test_cases WHERE problem_id = $1', [req.params.id]);
+    if (spec.mode === 'standard') {
+      await pool.query('DELETE FROM test_cases WHERE problem_id = $1', [req.params.id]);
 
-    const inputs_ = [].concat(inputs || []);
-    const outputs_ = [].concat(expected_outputs || []);
-    const hidden_ = [].concat(is_hidden || []);
+      const inputs_ = [].concat(inputs || []);
+      const outputs_ = [].concat(expected_outputs || []);
+      const hidden_ = [].concat(is_hidden || []);
 
-    for (let i = 0; i < inputs_.length; i++) {
-      if (outputs_[i] === undefined) continue;
-      await pool.query(
-        'INSERT INTO test_cases (problem_id, input, expected_output, is_hidden) VALUES ($1, $2, $3, $4)',
-        [req.params.id, inputs_[i], outputs_[i], hidden_[i] === 'on']
-      );
+      for (let i = 0; i < inputs_.length; i++) {
+        if (outputs_[i] === undefined) continue;
+        await pool.query(
+          'INSERT INTO test_cases (problem_id, input, expected_output, is_hidden) VALUES ($1, $2, $3, $4)',
+          [req.params.id, inputs_[i], outputs_[i], hidden_[i] === 'on']
+        );
+      }
     }
 
     res.redirect('/dashboard');
@@ -229,6 +259,7 @@ router.get('/:id', requireAuth, async (req, res, next) => {
   try {
     const result = await pool.query('SELECT * FROM problems WHERE id = $1', [req.params.id]);
     if (!result.rows.length) return res.status(404).send('Problem not found');
+    if (result.rows[0].mode === 'spec') return res.redirect(`/spec/problems/${req.params.id}`);
     res.render('ide', { user: req.user, problem: result.rows[0] });
   } catch (err) {
     next(err);
