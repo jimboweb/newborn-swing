@@ -254,6 +254,30 @@
     }
     .view-tab:hover { color: #d4d4d4; }
     .view-tab.active { color: #d4d4d4; background: #3e3e3e; }
+    .preview-breadcrumb {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      background: #37373d;
+      border-bottom: 1px solid #3e3e3e;
+      font-size: 0.78rem;
+      color: #cccccc;
+      flex-shrink: 0;
+    }
+    .preview-breadcrumb.visible { display: flex; }
+    .preview-breadcrumb a { color: #4fa3e0; text-decoration: none; cursor: pointer; }
+    .preview-breadcrumb a:hover { text-decoration: underline; }
+    .preview-note {
+      display: none;
+      padding: 0.5rem 0.75rem;
+      background: #4a3b1f;
+      color: #e8c07d;
+      font-size: 0.78rem;
+      border-bottom: 1px solid #3e3e3e;
+      flex-shrink: 0;
+    }
+    .preview-note.visible { display: block; }
     #preview-frame {
       flex: 1;
       border: none;
@@ -337,6 +361,11 @@
         </div>
         <span id="preview-title" style="text-transform:none;letter-spacing:normal;color:#d4d4d4;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40%;"></span>
       </div>
+      <div class="preview-breadcrumb" id="preview-breadcrumb">
+        <span id="preview-breadcrumb-file"></span>
+        <a onclick="renderPreviewFile('index.html')">&#8592; Back to index.html</a>
+      </div>
+      <div class="preview-note" id="preview-note"></div>
       <iframe
         id="preview-frame"
         sandbox="allow-scripts allow-same-origin"
@@ -529,12 +558,77 @@
     }
 
     // ── Preview ──
-    function buildPreviewDoc(fileMap) {
-      let html = fileMap['index.html'];
+    // Intercepts clicks inside the preview and posts the intent to the
+    // parent instead of navigating. A srcdoc/document.write()'d iframe has
+    // no real URL of its own for its project's relative links to resolve
+    // against, so a plain <a href="farms.html"> would otherwise resolve
+    // against THIS page's own address and 500. See briefs/FIX-preview-links.md.
+    // NOTE: this text lives inside THIS page's own inline script tag. Any
+    // closing script tag written into it must stay escaped with a
+    // backslash (like the heartbeat script below does), or the HTML
+    // parser ends this whole block early and breaks the page before any
+    // of this code ever runs — the parser doesn't know JS comments or
+    // strings exist, it just scans raw bytes (same class of bug already
+    // hit once with the heartbeat script below).
+    const NAV_INJECT = `
+<script>
+(function () {
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a');
+    if (!a) return;
+    var raw = a.getAttribute('href');
+    if (raw === null) return;
+    if (raw.charAt(0) === '#') return; // in-page anchor: let the browser handle it
+    e.preventDefault();
+    var scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(raw);
+    var kind;
+    if (!scheme) kind = 'internal';
+    else if (/^https?$/i.test(scheme[1])) kind = 'external';
+    else kind = 'special'; // mailto:, tel:, etc.
+    parent.postMessage({ __previewNav: true, kind: kind, href: raw }, '*');
+  }, true);
+})();
+<\/script>`;
+
+    let currentPreviewPath = 'index.html';
+
+    function gatherFileMap() {
+      const fileMap = {};
+      for (const f of files) {
+        fileMap[f.path] = models[f.id] ? models[f.id].getValue() : f.content;
+      }
+      return fileMap;
+    }
+
+    function updateBreadcrumb(path) {
+      const bar = document.getElementById('preview-breadcrumb');
+      if (path === 'index.html') {
+        bar.classList.remove('visible');
+      } else {
+        document.getElementById('preview-breadcrumb-file').textContent = path;
+        bar.classList.add('visible');
+      }
+    }
+
+    function showPreviewNote(msg) {
+      const note = document.getElementById('preview-note');
+      note.textContent = msg;
+      note.classList.add('visible');
+      clearTimeout(showPreviewNote._t);
+      showPreviewNote._t = setTimeout(() => note.classList.remove('visible'), 5000);
+    }
+
+    function buildPreviewDoc(fileMap, path) {
+      path = path || 'index.html';
+      let html = fileMap[path];
       if (!html) {
-        return `<html><body style="font-family:sans-serif;padding:2rem;color:#666">
-          <p>Add an <code>index.html</code> file to see a preview here.</p>
-        </body></html>`;
+        return path === 'index.html'
+          ? `<html><body style="font-family:sans-serif;padding:2rem;color:#666">
+              <p>Add an <code>index.html</code> file to see a preview here.</p>
+            </body></html>`
+          : `<html><body style="font-family:sans-serif;padding:2rem;color:#666">
+              <p>There is no file called ${path}.</p>
+            </body></html>`;
       }
 
       // Inline <link rel="stylesheet" href="..."> → <style>
@@ -565,6 +659,13 @@
           ? html.replace(/<\/body>/i, heartbeat + '\n</body>')
           : html + '\n' + heartbeat;
       }
+
+      // Injected last (unconditionally — unlike the heartbeat above, plain
+      // pages with no <script> of their own still need working links), so
+      // it wins if anything else also listens for clicks.
+      html = /(<\/body>)/i.test(html)
+        ? html.replace(/<\/body>/i, NAV_INJECT + '\n</body>')
+        : html + '\n' + NAV_INJECT;
 
       return html;
     }
@@ -598,18 +699,16 @@
       }
     }
 
-    function refreshPreview() {
-      if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
-      const fileMap = {};
-      for (const f of files) {
-        fileMap[f.path] = models[f.id] ? models[f.id].getValue() : f.content;
-      }
+    function renderPreviewFile(path, fileMapArg) {
+      currentPreviewPath = path;
+      const fileMap = fileMapArg || gatherFileMap();
 
       // Only watch for infinite loops when the student's files actually have scripts
       const hasUserScripts = Object.values(fileMap).some(c => /<script\b/i.test(c));
 
-      const html = buildPreviewDoc(fileMap);
-      updateTreePanel(fileMap);
+      const html = buildPreviewDoc(fileMap, path);
+      updateTreePanel(fileMap); // always index.html's tree — a separate, unrelated feature
+      updateBreadcrumb(path);
 
       // Show <title> content in the preview header
       const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
@@ -642,10 +741,43 @@
       }
     }
 
-    // Receive heartbeat from sandboxed iframe
+    function refreshPreview() {
+      if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+      // Editing a file or pressing Run always goes back to the start page —
+      // otherwise a student mid-edit on index.html would see a stale
+      // farms.html they navigated to two clicks ago.
+      renderPreviewFile('index.html');
+    }
+
+    // Messages from the sandboxed preview iframe: the loop-watchdog
+    // heartbeat, and link clicks intercepted by NAV_INJECT (see
+    // briefs/FIX-preview-links.md). The frame can end up same-origin
+    // (sandbox allows it), so check e.source rather than trusting e.origin.
     window.addEventListener('message', (e) => {
-      if (e.data && e.data.type === 'preview-ready') {
+      const iframe = document.getElementById('preview-frame');
+      if (!iframe || e.source !== iframe.contentWindow) return;
+      const d = e.data;
+      if (!d) return;
+
+      if (d.type === 'preview-ready') {
         if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
+        return;
+      }
+
+      if (d.__previewNav !== true) return;
+
+      if (d.kind === 'internal') {
+        const target = d.href.split('#')[0].split('?')[0].replace(/^\.\//, '');
+        const fileMap = gatherFileMap();
+        if (fileMap[target] === undefined) {
+          showPreviewNote('Broken link: there is no file called ' + target);
+        } else {
+          renderPreviewFile(target, fileMap);
+        }
+      } else if (d.kind === 'external') {
+        window.open(d.href, '_blank', 'noopener');
+      } else {
+        showPreviewNote('This link opens ' + d.href + ' outside the browser.');
       }
     });
 
