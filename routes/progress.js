@@ -14,7 +14,7 @@ router.patch('/:code', requireAuth, async (req, res, next) => {
     return res.status(400).json({ error: 'Invalid state' });
 
   try {
-    const cp = await pool.query('SELECT id FROM checkpoints WHERE code = $1', [req.params.code.toUpperCase()]);
+    const cp = await pool.query('SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($1)', [req.params.code]);
     if (!cp.rows.length) return res.status(404).json({ error: 'Checkpoint not found' });
     const checkpointId = cp.rows[0].id;
 
@@ -57,7 +57,7 @@ router.patch('/:studentId/:code', requireTeacher, async (req, res, next) => {
   if (!validStates.includes(state)) return res.status(400).json({ error: 'Invalid state' });
 
   try {
-    const cp = await pool.query('SELECT id FROM checkpoints WHERE code = $1', [req.params.code.toUpperCase()]);
+    const cp = await pool.query('SELECT id FROM checkpoints WHERE UPPER(code) = UPPER($1)', [req.params.code]);
     if (!cp.rows.length) return res.status(404).json({ error: 'Checkpoint not found' });
     const checkpointId = cp.rows[0].id;
     const studentId = parseInt(req.params.studentId, 10);
