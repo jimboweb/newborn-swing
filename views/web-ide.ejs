@@ -306,6 +306,110 @@
       white-space: pre;
     }
     .tag-added { background: #3a1f1f; color: #f44747; font-weight: bold; }
+
+    /* ── Menu data modal ── */
+    .menu-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+    .menu-modal-overlay.open { display: flex; }
+    .menu-modal {
+      background: #252526;
+      border: 1px solid #3e3e3e;
+      border-radius: 6px;
+      width: min(960px, 94vw);
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .menu-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #3e3e3e;
+      flex-shrink: 0;
+    }
+    .menu-modal-header h2 { font-size: 1rem; color: #d4d4d4; margin-bottom: 0.4rem; }
+    .menu-address-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: #9e9e9e;
+      flex-wrap: wrap;
+    }
+    .menu-address-row code {
+      background: #1e1e1e;
+      border: 1px solid #3e3e3e;
+      border-radius: 3px;
+      padding: 0.2rem 0.5rem;
+      color: #9cdcfe;
+      font-size: 0.78rem;
+      word-break: break-all;
+    }
+    .menu-modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 1rem 1.25rem;
+    }
+    .menu-grid-wrap { overflow-x: auto; }
+    .menu-grid { border-collapse: collapse; width: 100%; min-width: 820px; }
+    .menu-grid th {
+      text-align: left;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9e9e9e;
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid #3e3e3e;
+    }
+    .menu-grid td {
+      padding: 0.3rem 0.5rem;
+      border-bottom: 1px solid #333;
+      vertical-align: top;
+    }
+    .menu-grid input, .menu-grid textarea {
+      width: 100%;
+      background: #1e1e1e;
+      border: 1px solid #3e3e3e;
+      border-radius: 3px;
+      color: #d4d4d4;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.4rem;
+      font-family: inherit;
+    }
+    .menu-grid input:disabled, .menu-grid textarea:disabled { opacity: 0.75; }
+    .menu-grid input.cell-error, .menu-grid textarea.cell-error { border-color: #f44747; }
+    .menu-grid textarea { resize: vertical; min-height: 2rem; }
+    .menu-row-num { color: #666; font-size: 0.78rem; white-space: nowrap; padding-top: 0.5rem !important; }
+    .menu-row-actions { display: flex; gap: 0.2rem; white-space: nowrap; }
+    .menu-row-actions button {
+      background: none; border: 1px solid #3e3e3e; border-radius: 3px;
+      color: #9e9e9e; cursor: pointer; font-size: 0.75rem; padding: 0.15rem 0.35rem;
+    }
+    .menu-row-actions button:hover:not(:disabled) { background: #3e3e3e; color: #d4d4d4; }
+    .menu-row-actions button:disabled { opacity: 0.35; cursor: default; }
+    .menu-row-actions .menu-del:hover:not(:disabled) { color: #f44747; background: rgba(244,71,71,0.15); }
+    .menu-cell-error-msg { color: #f44747; font-size: 0.72rem; margin-top: 0.2rem; }
+    .menu-modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid #3e3e3e;
+      flex-shrink: 0;
+    }
+    #menu-save-status { font-size: 0.8rem; color: #6a9955; }
+    #menu-save-status.error { color: #f44747; }
   </style>
 </head>
 <body>
@@ -322,8 +426,57 @@
     <button class="hdr-btn" id="upload-btn" onclick="document.getElementById('img-file-input').click()" title="Upload an image and insert its URL">&#128444; Image</button>
     <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="uploadImage(this)">
     <% } %>
+    <% if (menuPublicId) { %>
+    <button class="hdr-btn" id="menu-data-btn" onclick="openMenuModal()">&#127869; Menu data</button>
+    <% } %>
     <button class="hdr-btn hdr-btn-run" onclick="refreshPreview()">&#9654; Run</button>
   </header>
+
+  <!-- Menu data modal (briefs/newborn-swing-menu-data-brief.md) -->
+  <% if (menuPublicId) { %>
+  <div class="menu-modal-overlay" id="menu-modal-overlay" aria-hidden="true">
+    <div class="menu-modal" role="dialog" aria-label="Menu data">
+      <div class="menu-modal-header">
+        <div>
+          <h2>Menu data<% if (readonly) { %> <span style="color:#f9a825;font-size:0.72rem;font-weight:600">READ-ONLY</span><% } %></h2>
+          <div class="menu-address-row">
+            <span>Data address:</span>
+            <code id="menu-address-text"></code>
+            <button type="button" class="hdr-btn" onclick="copyMenuAddress()">Copy</button>
+          </div>
+        </div>
+        <button class="drawer-close" onclick="closeMenuModal()" aria-label="Close menu data">&#x2715;</button>
+      </div>
+      <div class="menu-modal-body">
+        <div class="menu-grid-wrap">
+          <table class="menu-grid" id="menu-grid">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Dietary notes (comma-separated)</th>
+                <% if (canEditMenu) { %><th></th><% } %>
+              </tr>
+            </thead>
+            <tbody id="menu-grid-body"></tbody>
+          </table>
+        </div>
+        <% if (canEditMenu) { %>
+        <button type="button" class="add-btn" id="menu-add-row" onclick="addMenuRow()">+ Add row</button>
+        <% } %>
+      </div>
+      <div class="menu-modal-footer">
+        <span id="menu-save-status"></span>
+        <% if (canEditMenu) { %>
+        <button type="button" class="hdr-btn hdr-btn-run" id="menu-save-btn" onclick="saveMenuRows()">Save</button>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  <% } %>
 
   <!-- Tab bar -->
   <div class="ide-tabs" id="tab-bar"></div>
@@ -389,6 +542,9 @@
     const initialFiles   = <%- filesJson %>;
     const initialCardCode = <%- JSON.stringify(cardCode) %>;
     const READONLY       = <%= readonly %>;
+    const menuPublicId   = <%- JSON.stringify(menuPublicId) %>;
+    const initialMenuRows = <%- menuJson %>;
+    const CAN_EDIT_MENU  = <%= canEditMenu %>;
 
     // ── Runtime state ──
     let files          = initialFiles.map(f => ({ ...f }));
@@ -904,6 +1060,231 @@
       refreshPreview();
     }
 
+    // ── Menu data (briefs/newborn-swing-menu-data-brief.md) ──
+    // dietary is kept as a single comma-separated string while a row is being
+    // edited (that's what one grid cell holds) and only split into an array
+    // right before Save.
+    const MENU_LIMITS = { maxRows: 100, nameMax: 100, descMax: 500, dietaryMax: 10, dietaryWordMax: 30 };
+
+    function menuRowToEditable(row) {
+      return {
+        name: row.name || '',
+        price: (row.price === null || row.price === undefined) ? '' : String(row.price),
+        category: row.category || '',
+        description: row.description || '',
+        dietary: Array.isArray(row.dietary) ? row.dietary.join(', ') : (row.dietary || ''),
+      };
+    }
+
+    let menuRows = initialMenuRows.map(menuRowToEditable);
+    let menuDirty = false;
+    let menuRowErrors = {}; // rowIndex -> { field: message }
+
+    function parseMenuPriceClient(raw) {
+      const trimmed = String(raw || '').trim();
+      if (trimmed === '') return { ok: true, value: null };
+      const cleaned = trimmed.replace(/^\$/, '');
+      if (!/^\d+(\.\d+)?$/.test(cleaned)) return { ok: false };
+      return { ok: true, value: Number(cleaned) };
+    }
+
+    function splitDietary(raw) {
+      return String(raw || '').split(',').map(d => d.trim()).filter(Boolean);
+    }
+
+    function menuAddressUrl() {
+      return window.location.origin + '/api/menu/' + menuPublicId;
+    }
+
+    function renderMenuGrid() {
+      const body = document.getElementById('menu-grid-body');
+      body.innerHTML = '';
+
+      menuRows.forEach((row, i) => {
+        const tr = document.createElement('tr');
+        const errs = menuRowErrors[i] || {};
+
+        function cell(field, value, tag, extraAttrs) {
+          const td = document.createElement('td');
+          const el = document.createElement(tag);
+          el.value = value;
+          if (errs[field]) el.classList.add('cell-error');
+          if (!CAN_EDIT_MENU) el.disabled = true;
+          if (extraAttrs) Object.assign(el, extraAttrs);
+          el.addEventListener('input', () => {
+            menuRows[i][field] = el.value;
+            menuDirty = true;
+            if (menuRowErrors[i]) { delete menuRowErrors[i][field]; el.classList.remove('cell-error'); }
+          });
+          td.appendChild(el);
+          if (errs[field]) {
+            const msg = document.createElement('div');
+            msg.className = 'menu-cell-error-msg';
+            msg.textContent = errs[field];
+            td.appendChild(msg);
+          }
+          return td;
+        }
+
+        const numTd = document.createElement('td');
+        numTd.className = 'menu-row-num';
+        numTd.textContent = String(i + 1);
+        tr.appendChild(numTd);
+
+        tr.appendChild(cell('name', row.name, 'input', { type: 'text', maxLength: MENU_LIMITS.nameMax }));
+        tr.appendChild(cell('price', row.price, 'input', { type: 'text', placeholder: 'e.g. 9.00' }));
+        tr.appendChild(cell('category', row.category, 'input', { type: 'text' }));
+        tr.appendChild(cell('description', row.description, 'textarea', { maxLength: MENU_LIMITS.descMax, rows: 2 }));
+        tr.appendChild(cell('dietary', row.dietary, 'input', { type: 'text', placeholder: 'vegetarian, gluten-free' }));
+
+        if (CAN_EDIT_MENU) {
+          const actionsTd = document.createElement('td');
+          actionsTd.className = 'menu-row-actions';
+
+          const upBtn = document.createElement('button');
+          upBtn.type = 'button'; upBtn.textContent = '↑'; upBtn.title = 'Move up';
+          upBtn.disabled = i === 0;
+          upBtn.addEventListener('click', () => moveMenuRow(i, -1));
+
+          const downBtn = document.createElement('button');
+          downBtn.type = 'button'; downBtn.textContent = '↓'; downBtn.title = 'Move down';
+          downBtn.disabled = i === menuRows.length - 1;
+          downBtn.addEventListener('click', () => moveMenuRow(i, 1));
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button'; delBtn.textContent = '×'; delBtn.title = 'Delete row';
+          delBtn.className = 'menu-del';
+          delBtn.addEventListener('click', () => deleteMenuRow(i));
+
+          actionsTd.append(upBtn, downBtn, delBtn);
+          tr.appendChild(actionsTd);
+        }
+
+        body.appendChild(tr);
+      });
+
+      const addBtn = document.getElementById('menu-add-row');
+      if (addBtn) addBtn.disabled = menuRows.length >= MENU_LIMITS.maxRows;
+    }
+
+    function addMenuRow() {
+      if (menuRows.length >= MENU_LIMITS.maxRows) return;
+      menuRows.push({ name: '', price: '', category: '', description: '', dietary: '' });
+      menuDirty = true;
+      renderMenuGrid();
+    }
+
+    function deleteMenuRow(i) {
+      if (!confirm('Delete this row? This cannot be undone.')) return;
+      menuRows.splice(i, 1);
+      delete menuRowErrors[i];
+      menuDirty = true;
+      renderMenuGrid();
+    }
+
+    function moveMenuRow(i, dir) {
+      const j = i + dir;
+      if (j < 0 || j >= menuRows.length) return;
+      [menuRows[i], menuRows[j]] = [menuRows[j], menuRows[i]];
+      menuDirty = true;
+      renderMenuGrid();
+    }
+
+    function setMenuSaveStatus(text, isError) {
+      const el = document.getElementById('menu-save-status');
+      el.textContent = text;
+      el.className = isError ? 'error' : '';
+    }
+
+    function validateMenuRowsClient() {
+      menuRowErrors = {};
+      let hasErrors = false;
+      menuRows.forEach((row, i) => {
+        const errs = {};
+        const name = (row.name || '').trim();
+        if (!name) errs.name = 'Name is required.';
+        else if (name.length > MENU_LIMITS.nameMax) errs.name = `Keep it to ${MENU_LIMITS.nameMax} characters.`;
+
+        if (!parseMenuPriceClient(row.price).ok) errs.price = 'Must be a number (e.g. 9 or 9.00), or blank.';
+
+        const description = (row.description || '').trim();
+        if (description.length > MENU_LIMITS.descMax) errs.description = `Keep it to ${MENU_LIMITS.descMax} characters.`;
+
+        const dietary = splitDietary(row.dietary);
+        if (dietary.length > MENU_LIMITS.dietaryMax) errs.dietary = `No more than ${MENU_LIMITS.dietaryMax} notes.`;
+        else if (dietary.some(d => d.length > MENU_LIMITS.dietaryWordMax)) errs.dietary = `Each note must be ${MENU_LIMITS.dietaryWordMax} characters or fewer.`;
+
+        if (Object.keys(errs).length) { menuRowErrors[i] = errs; hasErrors = true; }
+      });
+      return !hasErrors;
+    }
+
+    async function saveMenuRows() {
+      if (!validateMenuRowsClient()) {
+        renderMenuGrid();
+        setMenuSaveStatus('Fix the highlighted cells before saving.', true);
+        return;
+      }
+
+      const payload = menuRows.map(row => ({
+        name: row.name.trim(),
+        price: row.price,
+        category: row.category.trim(),
+        description: row.description.trim(),
+        dietary: splitDietary(row.dietary),
+      }));
+
+      setMenuSaveStatus('Saving…', false);
+      try {
+        const res = await fetch(`/projects/${projectId}/menu`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rows: payload }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (Array.isArray(data.rowErrors)) {
+            menuRowErrors = {};
+            for (const { row, errors } of data.rowErrors) menuRowErrors[row] = errors;
+            renderMenuGrid();
+          }
+          setMenuSaveStatus(data.error || 'Save failed.', true);
+          return;
+        }
+        menuDirty = false;
+        setMenuSaveStatus('Saved ✓', false);
+        setTimeout(() => setMenuSaveStatus('', false), 2000);
+      } catch {
+        setMenuSaveStatus('Save failed.', true);
+      }
+    }
+
+    function copyMenuAddress() {
+      const url = menuAddressUrl();
+      navigator.clipboard.writeText(url).then(() => {
+        setMenuSaveStatus('Address copied.', false);
+        setTimeout(() => setMenuSaveStatus('', false), 2000);
+      }).catch(() => {
+        alert('Data address:\n' + url);
+      });
+    }
+
+    function openMenuModal() {
+      document.getElementById('menu-address-text').textContent = menuAddressUrl();
+      renderMenuGrid();
+      document.getElementById('menu-modal-overlay').classList.add('open');
+      document.getElementById('menu-modal-overlay').setAttribute('aria-hidden', 'false');
+    }
+
+    function closeMenuModal() {
+      if (CAN_EDIT_MENU && menuDirty) {
+        if (!confirm('You have unsaved changes to the menu data. Leave anyway?')) return;
+        menuDirty = false;
+      }
+      document.getElementById('menu-modal-overlay').classList.remove('open');
+      document.getElementById('menu-modal-overlay').setAttribute('aria-hidden', 'true');
+    }
+
     // ── Card drawer ──
     let activeCardCode = null;
 
@@ -965,12 +1346,13 @@
       }
     }
 
-    // Keyboard: Escape closes drawer
+    // Keyboard: Escape closes whichever overlay is open (menu modal first)
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
-        const drawer = document.getElementById('card-drawer');
-        if (drawer.classList.contains('open')) { e.preventDefault(); closeDrawer(); }
-      }
+      if (e.key !== 'Escape') return;
+      const menuOverlay = document.getElementById('menu-modal-overlay');
+      if (menuOverlay && menuOverlay.classList.contains('open')) { e.preventDefault(); closeMenuModal(); return; }
+      const drawer = document.getElementById('card-drawer');
+      if (drawer.classList.contains('open')) { e.preventDefault(); closeDrawer(); }
     });
 
     // ── Monaco setup ──

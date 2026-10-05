@@ -50,6 +50,7 @@ app.use('/projects', require('./routes/projects'));
 app.use('/api/progress', require('./routes/progress'));
 app.use('/admin', require('./routes/admin'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/menu', require('./routes/menu'));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
