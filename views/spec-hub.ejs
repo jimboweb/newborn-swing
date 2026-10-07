@@ -33,10 +33,22 @@
     .param-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem; margin-bottom: 0.6rem; }
     .param-grid label { font-size: 0.78rem; font-weight: 500; color: #666; }
     .param-grid input { font-family: monospace; font-size: 0.85rem; }
-    .expect-row { display: flex; align-items: center; gap: 1.25rem; font-size: 0.85rem; }
-    .expect-row label { display: flex; align-items: center; gap: 0.35rem; font-weight: 400; margin: 0; }
+    .expect-row { display: flex; align-items: flex-start; gap: 1.25rem; font-size: 0.85rem; }
+    .expect-row label { display: flex; align-items: center; gap: 0.35rem; font-weight: 400; margin: 0; white-space: nowrap; }
     .expect-row input[type=text] { width: 160px; font-family: monospace; }
     .add-btn { background: none; border: 1px dashed #aaa; color: #555; padding: 0.4rem 0.9rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; margin: 0.5rem 0 1.25rem; }
+
+    /* ── Value editor: a plain value, or a List/Dictionary built from rows
+       instead of typed syntax (see createValueEditor() below) ── */
+    .value-editor { display: flex; flex-direction: column; gap: 0.3rem; min-width: 150px; }
+    .value-editor .value-kind { width: auto; align-self: flex-start; font-size: 0.76rem; padding: 0.15rem 0.3rem; border: 1px solid #ccc; border-radius: 3px; }
+    .value-list-box, .value-dict-box { border: 1px dashed #bbb; border-radius: 4px; padding: 0.4rem 0.5rem; background: #fafafa; }
+    .value-item-row, .value-entry-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.3rem; }
+    .value-item-row:last-child, .value-entry-row:last-child { margin-bottom: 0; }
+    .value-item-row input, .value-entry-row input { width: auto; flex: 1; font-family: monospace; font-size: 0.8rem; }
+    .value-entry-row input.value-key { flex: 0 0 90px; }
+    .value-editor .add-btn { margin: 0; padding: 0.2rem 0.5rem; font-size: 0.75rem; }
+    .value-item-row .remove-btn, .value-entry-row .remove-btn { font-size: 0.72rem; }
     .btn { display: inline-block; padding: 0.5rem 1.2rem; border-radius: 4px; font-size: 0.9rem; cursor: pointer; border: none; }
     .btn-primary { background: #2980b9; color: #fff; }
     pre.docstring { background: #1e1e1e; color: #d4d4d4; padding: 1rem 1.25rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; margin-bottom: 1rem; }
@@ -141,13 +153,148 @@
       });
     }
 
+    // ── Value editor: lets a parameter or a return value be a List or a
+    // Dictionary, built from rows instead of typed bracket/JSON syntax —
+    // same "no syntax" principle as coerceValue() server-side. One level
+    // deep (a list/dict of plain values, not nested lists-of-lists): that
+    // covers checking the state of a returned list or dict without asking
+    // a student to nest structures inside a text box.
+    function scalarToText(v) {
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'boolean') return v ? 'true' : 'false';
+      return String(v);
+    }
+
+    // Client-side mirror of coerceValue() in routes/specmode.js — used only
+    // to turn each item/entry's typed text into the right JS type before
+    // folding the whole list/dict into real JSON (the server re-parses the
+    // result with its own copy, so this one is never trusted alone).
+    function coerceValueClient(raw) {
+      const s = String(raw ?? '').trim();
+      if (s === '') return null;
+      if (s === 'true') return true;
+      if (s === 'false') return false;
+      if (/^-?\d+$/.test(s)) return parseInt(s, 10);
+      if (/^-?\d+\.\d+$/.test(s)) return parseFloat(s);
+      if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        return s.slice(1, -1);
+      }
+      return s;
+    }
+
+    function createValueEditor(name, initialValue) {
+      const root = document.createElement('div');
+      root.className = 'value-editor';
+
+      const realInput = document.createElement('input');
+      realInput.type = 'text';
+      realInput.name = name;
+      realInput.placeholder = 'e.g. 3 or "red" or true';
+
+      const kindSelect = document.createElement('select');
+      kindSelect.className = 'value-kind';
+      kindSelect.innerHTML = `<option value="simple">Value</option><option value="list">List</option><option value="dict">Dictionary</option>`;
+
+      const listBox = document.createElement('div');
+      listBox.className = 'value-list-box';
+      const listItems = document.createElement('div');
+      listBox.appendChild(listItems);
+      const addItemBtn = document.createElement('button');
+      addItemBtn.type = 'button'; addItemBtn.className = 'add-btn'; addItemBtn.textContent = '+ Add item';
+      addItemBtn.addEventListener('click', () => addListItem(''));
+      listBox.appendChild(addItemBtn);
+
+      const dictBox = document.createElement('div');
+      dictBox.className = 'value-dict-box';
+      const dictEntries = document.createElement('div');
+      dictBox.appendChild(dictEntries);
+      const addEntryBtn = document.createElement('button');
+      addEntryBtn.type = 'button'; addEntryBtn.className = 'add-btn'; addEntryBtn.textContent = '+ Add entry';
+      addEntryBtn.addEventListener('click', () => addDictEntry('', ''));
+      dictBox.appendChild(addEntryBtn);
+
+      function addListItem(v) {
+        const row = document.createElement('div');
+        row.className = 'value-item-row';
+        const input = document.createElement('input');
+        input.type = 'text'; input.value = scalarToText(v); input.placeholder = 'e.g. 3 or "red" or true';
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'remove-btn'; del.textContent = 'Remove';
+        del.addEventListener('click', () => row.remove());
+        row.append(input, del);
+        listItems.appendChild(row);
+      }
+
+      function addDictEntry(k, v) {
+        const row = document.createElement('div');
+        row.className = 'value-entry-row';
+        const keyInput = document.createElement('input');
+        keyInput.type = 'text'; keyInput.className = 'value-key'; keyInput.value = k ?? ''; keyInput.placeholder = 'key';
+        const valInput = document.createElement('input');
+        valInput.type = 'text'; valInput.value = scalarToText(v); valInput.placeholder = 'e.g. 3 or "red" or true';
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'remove-btn'; del.textContent = 'Remove';
+        del.addEventListener('click', () => row.remove());
+        row.append(keyInput, valInput, del);
+        dictEntries.appendChild(row);
+      }
+
+      function setKind(kind) {
+        kindSelect.value = kind;
+        realInput.hidden = kind !== 'simple';
+        listBox.hidden = kind !== 'list';
+        dictBox.hidden = kind !== 'dict';
+      }
+      kindSelect.addEventListener('change', () => setKind(kindSelect.value));
+
+      // Detect the initial kind from the stored value: a real array/object
+      // coming back from the database, or a plain scalar.
+      if (Array.isArray(initialValue)) {
+        initialValue.forEach(addListItem);
+        if (!initialValue.length) addListItem('');
+        setKind('list');
+      } else if (initialValue && typeof initialValue === 'object') {
+        Object.entries(initialValue).forEach(([k, v]) => addDictEntry(k, v));
+        if (!Object.keys(initialValue).length) addDictEntry('', '');
+        setKind('dict');
+      } else {
+        realInput.value = scalarToText(initialValue);
+        setKind('simple');
+      }
+
+      root.append(kindSelect, realInput, listBox, dictBox);
+
+      // Called right before the form submits: folds the repeater's rows
+      // back into the one real <input> that actually gets posted, as JSON
+      // text. coerceValue() on the server recognizes a leading [ or { and
+      // parses it as real JSON instead of a plain scalar — every value
+      // typed into the plain "Value" field is untouched, so existing
+      // simple examples keep working exactly as before.
+      root.sync = function () {
+        if (kindSelect.value === 'list') {
+          const items = [...listItems.querySelectorAll('input')].map(i => coerceValueClient(i.value));
+          realInput.value = JSON.stringify(items);
+        } else if (kindSelect.value === 'dict') {
+          const obj = {};
+          dictEntries.querySelectorAll('.value-entry-row').forEach(row => {
+            const [keyInput, valInput] = row.querySelectorAll('input');
+            const key = keyInput.value.trim();
+            if (key) obj[key] = coerceValueClient(valInput.value);
+          });
+          realInput.value = JSON.stringify(obj);
+        }
+      };
+
+      return root;
+    }
+
     function addCase(inputs = {}, expectType = 'returns', expectedValue = '') {
       const div = document.createElement('div');
       div.className = 'case-row';
       const paramFields = paramNames.map(p => `
         <div>
           <label>${p}</label>
-          <input type="text" name="input_${p}" value="${(inputs[p] ?? '').toString().replace(/"/g,'&quot;')}">
+          <span class="param-value-slot" data-param="${p}"></span>
         </div>
       `).join('');
       div.innerHTML = `
@@ -157,12 +304,27 @@
         </div>
         <div class="param-grid">${paramFields}</div>
         <div class="expect-row">
-          <label><input type="radio" value="returns" ${expectType !== 'raises' ? 'checked' : ''} onchange="this.closest('.case-row').querySelector('.expected-value').style.display = 'inline-block'"> Returns:
-            <input type="text" class="expected-value" name="expected_value" value="${String(expectedValue ?? '').replace(/"/g,'&quot;')}" style="${expectType === 'raises' ? 'display:none' : ''}">
-          </label>
-          <label><input type="radio" value="raises" ${expectType === 'raises' ? 'checked' : ''} onchange="this.closest('.case-row').querySelector('.expected-value').style.display = 'none'"> Should cause an error</label>
+          <label><input type="radio" value="returns" ${expectType !== 'raises' ? 'checked' : ''}> Returns:</label>
+          <span class="expected-value-slot"></span>
+          <label><input type="radio" value="raises" ${expectType === 'raises' ? 'checked' : ''}> Should cause an error</label>
         </div>
       `;
+
+      paramNames.forEach(p => {
+        const slot = div.querySelector(`.param-value-slot[data-param="${p}"]`);
+        slot.replaceWith(createValueEditor(`input_${p}`, inputs[p] ?? ''));
+      });
+
+      const expectedEditor = createValueEditor('expected_value', expectedValue ?? '');
+      expectedEditor.hidden = expectType === 'raises';
+      div.querySelector('.expected-value-slot').replaceWith(expectedEditor);
+
+      div.querySelectorAll('input[type=radio]').forEach(r => {
+        r.addEventListener('change', () => {
+          expectedEditor.hidden = div.querySelector('input[type=radio][value=raises]').checked;
+        });
+      });
+
       document.getElementById('cases').appendChild(div);
       renumberCases();
     }
@@ -174,6 +336,12 @@
     } else {
       addCase();
     }
+
+    // Fold every value editor's current rows into its real <input> right
+    // before the browser collects the form fields to submit.
+    document.querySelector('form[action$="/specs"]').addEventListener('submit', () => {
+      document.querySelectorAll('.value-editor').forEach(el => el.sync && el.sync());
+    });
   </script>
 </body>
 </html>

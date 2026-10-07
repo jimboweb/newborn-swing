@@ -8,6 +8,10 @@ const { checkTestCase, DEFAULT_TIMEOUT_MS } = require('../lib/specRunner');
 
 // Best-effort text -> JS value coercion for the structured spec form, so
 // students never type Python/JSON syntax (see brief's "boilerplate risk").
+// A list/dict value never reaches this as hand-typed text either — the
+// value editor in spec-hub.ejs folds its rows into real JSON (a leading
+// `[` or `{`) right before the form submits, and that's the one case
+// below that IS syntax, just never syntax a student had to write.
 function coerceValue(raw) {
   if (raw === undefined || raw === null) return null;
   const s = String(raw).trim();
@@ -19,14 +23,24 @@ function coerceValue(raw) {
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
     return s.slice(1, -1);
   }
+  if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
+    try { return JSON.parse(s); } catch { /* not actually JSON — fall through as a bare string */ }
+  }
   return s;
 }
 
+// Recurses into lists/dicts so nested booleans and None come out spelled
+// the Python way (JSON.stringify alone would leave true/false/null, which
+// isn't valid Python) — the docstring this feeds is pasted as real code.
 function formatPyLiteral(v) {
   if (v === null || v === undefined) return 'None';
   if (typeof v === 'boolean') return v ? 'True' : 'False';
   if (typeof v === 'number') return String(v);
-  return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(formatPyLiteral).join(', ') + ']';
+  if (typeof v === 'object') {
+    return '{' + Object.entries(v).map(([k, val]) => `${JSON.stringify(k)}: ${formatPyLiteral(val)}`).join(', ') + '}';
+  }
+  return JSON.stringify(v); // plain string
 }
 
 // Read-only doctest-style docstring shown to the implementer — generated
