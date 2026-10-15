@@ -12,19 +12,56 @@ const { checkTestCase, DEFAULT_TIMEOUT_MS } = require('../lib/specRunner');
 // value editor in spec-hub.ejs folds its rows into real JSON (a leading
 // `[` or `{`) right before the form submits, and that's the one case
 // below that IS syntax, just never syntax a student had to write.
+// Rewrites a Python list/dict literal as JSON: single-quoted strings become
+// double-quoted, and bare True/False/None become true/false/null. Students
+// type Python, so [True, None] or {'a': 1} must parse the same as their JSON
+// spellings. Words inside strings are left alone.
+function pyLiteralToJson(s) {
+  let out = '';
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === '"' || ch === "'") {
+      let str = '';
+      i++;
+      while (i < s.length && s[i] !== ch) {
+        if (s[i] === '\\' && i + 1 < s.length) { str += s[i] + s[i + 1]; i += 2; continue; }
+        str += s[i++];
+      }
+      i++; // closing quote
+      // Re-quote with double quotes: unescape \' and escape bare ".
+      out += '"' + str.replace(/\\'/g, "'").replace(/(^|[^\\])"/g, '$1\\"') + '"';
+      continue;
+    }
+    const word = /^[A-Za-z_]\w*/.exec(s.slice(i));
+    if (word) {
+      const w = word[0];
+      out += w === 'True' ? 'true' : w === 'False' ? 'false' : w === 'None' ? 'null' : w;
+      i += w.length;
+      continue;
+    }
+    out += ch;
+    i++;
+  }
+  return out;
+}
+
 function coerceValue(raw) {
   if (raw === undefined || raw === null) return null;
   const s = String(raw).trim();
   if (s === '') return null;
-  if (s === 'true') return true;
-  if (s === 'false') return false;
+  // Accept both the Python spelling students write and the JSON spelling.
+  if (s === 'True' || s === 'true') return true;
+  if (s === 'False' || s === 'false') return false;
+  if (s === 'None' || s === 'null') return null;
   if (/^-?\d+$/.test(s)) return parseInt(s, 10);
   if (/^-?\d+\.\d+$/.test(s)) return parseFloat(s);
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
     return s.slice(1, -1);
   }
   if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
-    try { return JSON.parse(s); } catch { /* not actually JSON — fall through as a bare string */ }
+    try { return JSON.parse(s); } catch { /* maybe Python syntax — try that next */ }
+    try { return JSON.parse(pyLiteralToJson(s)); } catch { /* not a literal — fall through as a bare string */ }
   }
   return s;
 }
