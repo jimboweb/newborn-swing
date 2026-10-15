@@ -65,10 +65,12 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS menu_items_project_idx ON menu_items (project_id, position);
   `);
 
-  // Backfill: every project without a menu_public_id yet (existing restaurant
-  // projects from before this migration) gets one, plus the starter row.
+  // Backfill: every restaurant project without a menu_public_id yet (ones
+  // from before this migration) gets one, plus the starter row. Scratch
+  // projects never get menu data, so they must be excluded here — otherwise
+  // each deploy would hand one to every scratch project made since the last.
   const { rows: toBackfill } = await pool.query(
-    `SELECT id FROM projects WHERE menu_public_id IS NULL`
+    `SELECT id FROM projects WHERE menu_public_id IS NULL AND kind = 'restaurant'`
   );
   for (const { id } of toBackfill) {
     await assignMenuPublicId(id);
