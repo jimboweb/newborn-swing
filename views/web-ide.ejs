@@ -284,6 +284,79 @@
       background: #fff;
       display: block;
     }
+
+    /* ── Console (briefs/newborn-swing-console-brief.md) ──
+       A read-only strip above the preview. Collapsed = just the strip;
+       .open adds the fixed-height message panel. */
+    .console { flex-shrink: 0; border-bottom: 1px solid #3e3e3e; background: #1e1e1e; }
+    .console-strip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 26px;
+      padding: 0 0.5rem 0 0.75rem;
+      background: #252526;
+      font-size: 0.72rem;
+      color: #9e9e9e;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .console-toggle {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      height: 100%;
+      padding: 0;
+      background: none;
+      border: none;
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .console-toggle:hover { color: #d4d4d4; }
+    .console-chevron { display: inline-block; transition: transform 0.15s; }
+    .console.open .console-chevron { transform: rotate(90deg); }
+    .console-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: #4fa3e0; }
+    .console-dot.visible { display: inline-block; }
+    .console-dot.error { background: #f44747; }
+    .console-clear {
+      display: none;
+      background: none;
+      border: 1px solid #3e3e3e;
+      border-radius: 3px;
+      color: #9e9e9e;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.5rem;
+      cursor: pointer;
+    }
+    .console.open .console-clear { display: inline-block; }
+    .console-clear:hover { color: #d4d4d4; }
+    .console-body {
+      display: none;
+      height: 150px;
+      overflow-y: auto;
+      font-family: Consolas, 'Droid Sans Mono', 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .console.open .console-body { display: block; }
+    .console-empty { padding: 0.5rem 0.75rem; color: #6a6a6a; }
+    .console-line {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.15rem 0.75rem;
+      border-bottom: 1px solid #2a2a2a;
+      color: #d4d4d4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .console-mark { flex-shrink: 0; width: 1em; }
+    .console-line.warn { color: #e8c07d; background: #332b00; }
+    .console-line.error { color: #f48771; background: #3a1d1d; }
+    .console-line.note { color: #9e9e9e; font-style: italic; }
     .tree-view { flex: 1; display: none; flex-direction: column; overflow: hidden; background: #1e1e1e; }
     #preview-pane.mode-tree #preview-frame { display: none; }
     #preview-pane.mode-tree .tree-view { display: flex; }
@@ -519,6 +592,19 @@
         <a onclick="renderPreviewFile('index.html')">&#8592; Back to index.html</a>
       </div>
       <div class="preview-note" id="preview-note"></div>
+      <div class="console" id="console">
+        <div class="console-strip">
+          <button type="button" class="console-toggle" id="console-toggle" aria-expanded="false" aria-controls="console-body" onclick="toggleConsole()">
+            <span class="console-chevron" aria-hidden="true">&#9656;</span>
+            Console
+            <span class="console-dot" id="console-dot" role="img"></span>
+          </button>
+          <button type="button" class="console-clear" onclick="clearConsole()">Clear</button>
+        </div>
+        <div class="console-body" id="console-body" role="log">
+          <div class="console-empty" id="console-empty">Nothing here yet. Messages from your JavaScript will appear here.</div>
+        </div>
+      </div>
       <iframe
         id="preview-frame"
         sandbox="allow-scripts allow-same-origin"
@@ -746,6 +832,162 @@
 })();
 <\/script>`;
 
+    // ── Console agent (briefs/newborn-swing-console-brief.md) ──
+    // Runs INSIDE the preview frame, never here: CONSOLE_INJECT below
+    // serializes it with toString(), so it must not touch anything from this
+    // page's scope. Injected first in the preview's <head> so it is in place
+    // before any of the student's scripts run. It wraps console.log/info/
+    // warn/error, reports uncaught errors and unhandled promise rejections
+    // (how an unhandled failed fetch() shows up), and formats every value to
+    // plain text up front — functions and DOM nodes can't be posted as-is.
+    // Same writing rule as NAV_INJECT: nothing in here may contain a
+    // closing script tag.
+    function previewConsoleAgent() {
+      var MAX_DEPTH = 3, MAX_ITEMS = 100, MAX_KEYS = 50, MAX_TEXT = 2000, MAX_PER_SEC = 100;
+
+      function send(msg) {
+        msg.__nsConsole = true;
+        try { parent.postMessage(msg, '*'); } catch (e) { /* parent gone */ }
+      }
+
+      // Rate limit, so a runaway loop doesn't flood the IDE with messages:
+      // past MAX_PER_SEC in one second, count instead of send, and report
+      // the count once ("N more messages hidden") when the second is up.
+      var windowStart = 0, sentInWindow = 0, hidden = 0, flushTimer = null;
+      function flushHidden() {
+        if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+        if (hidden) { send({ type: 'hidden', count: hidden }); hidden = 0; }
+      }
+      function allow() {
+        var now = Date.now();
+        if (now - windowStart >= 1000) { flushHidden(); windowStart = now; sentInWindow = 0; }
+        if (sentInWindow < MAX_PER_SEC) { sentInWindow++; return true; }
+        hidden++;
+        if (!flushTimer) flushTimer = setTimeout(flushHidden, 1000 - (now - windowStart));
+        return false;
+      }
+
+      function cap(s) { return s.length > MAX_TEXT ? s.slice(0, MAX_TEXT) + '…' : s; }
+      function indent(s) { return '  ' + s.replace(/\n/g, '\n  '); }
+      function keyText(k) { return /^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k); }
+
+      function fmtNode(n) {
+        if (n.nodeType === 1) {
+          var s = '<' + n.tagName.toLowerCase();
+          if (n.id) s += ' id="' + n.id + '"';
+          var cls = n.getAttribute('class');
+          if (cls) s += ' class="' + cls + '"';
+          return s + '>';
+        }
+        if (n.nodeType === 3) return '#text ' + JSON.stringify(n.textContent.length > 50 ? n.textContent.slice(0, 50) + '…' : n.textContent);
+        return n.nodeName.toLowerCase();
+      }
+
+      // top: a string straight from console.log prints bare; strings inside
+      // an array or object keep their quotes so "7" and 7 look different.
+      function fmt(v, top, depth, seen) {
+        var t = typeof v;
+        if (t === 'string') return top ? v : JSON.stringify(v);
+        if (v === null || t === 'number' || t === 'boolean' || t === 'undefined') return String(v);
+        if (t === 'bigint') return String(v) + 'n';
+        if (t === 'symbol') return v.toString();
+        if (t === 'function') return '[function]';
+        if (v instanceof Error) return v.name + ': ' + v.message;
+        if (typeof Node === 'function' && v instanceof Node) return fmtNode(v);
+        if (v instanceof Date) return isNaN(v) ? 'Invalid Date' : v.toString();
+        if (depth >= MAX_DEPTH || seen.indexOf(v) !== -1) return '[...]';
+        seen.push(v);
+        try {
+          var parts = [], i;
+          if (Array.isArray(v)) {
+            if (!v.length) return '[]';
+            var n = Math.min(v.length, MAX_ITEMS), allObjects = true;
+            for (i = 0; i < n; i++) {
+              parts.push(fmt(v[i], false, depth + 1, seen));
+              if (!v[i] || typeof v[i] !== 'object') allObjects = false;
+            }
+            if (v.length > n) parts.push('… ' + (v.length - n) + ' more');
+            // An array of objects (D1's list of dishes) gets one object per line.
+            if (allObjects) return '[\n' + parts.map(indent).join(',\n') + '\n]';
+            return '[ ' + parts.join(', ') + ' ]';
+          }
+          var ctor = v.constructor && v.constructor.name;
+          var prefix = ctor && ctor !== 'Object' ? ctor + ' ' : '';
+          if (v instanceof Map) {
+            v.forEach(function (val, key) {
+              if (parts.length < MAX_KEYS) parts.push(fmt(key, false, depth + 1, seen) + ' => ' + fmt(val, false, depth + 1, seen));
+            });
+          } else if (v instanceof Set) {
+            v.forEach(function (val) {
+              if (parts.length < MAX_KEYS) parts.push(fmt(val, false, depth + 1, seen));
+            });
+          } else {
+            var keys = Object.keys(v);
+            for (i = 0; i < keys.length && i < MAX_KEYS; i++) {
+              var shown;
+              try { shown = fmt(v[keys[i]], false, depth + 1, seen); } catch (e) { shown = '[error reading value]'; }
+              parts.push(keyText(keys[i]) + ': ' + shown);
+            }
+            if (keys.length > MAX_KEYS) parts.push('… ' + (keys.length - MAX_KEYS) + ' more');
+          }
+          return prefix + (parts.length ? '{ ' + parts.join(', ') + ' }' : '{}');
+        } finally {
+          seen.pop();
+        }
+      }
+
+      function safeFmt(v) {
+        try { return cap(fmt(v, true, 0, [])); } catch (e) { return '[value that could not be shown]'; }
+      }
+
+      ['log', 'info', 'warn', 'error'].forEach(function (method) {
+        var original = console[method];
+        console[method] = function () {
+          if (allow()) {
+            var values = [];
+            for (var i = 0; i < arguments.length; i++) values.push(safeFmt(arguments[i]));
+            send({ type: method, values: values });
+          }
+          // The browser's own console still gets the original call.
+          if (original) return original.apply(console, arguments);
+        };
+      });
+
+      window.addEventListener('error', function (e) {
+        if (!allow()) return;
+        send({
+          type: 'uncaught',
+          values: [cap(String(e.message || 'Script error.'))],
+          file: String(e.filename || ''),
+          line: e.lineno || 0,
+          samePage: e.filename === location.href,
+        });
+      });
+
+      window.addEventListener('unhandledrejection', function (e) {
+        if (!allow()) return;
+        send({ type: 'uncaught', values: ['(in promise) ' + safeFmt(e.reason)] });
+      });
+
+      send({ type: 'page-loaded' });
+    }
+    const CONSOLE_INJECT = '<script>(' + previewConsoleAgent.toString() + ')();<\/script>';
+
+    // Where each script block in the preview came from, keyed by the
+    // `//# sourceURL=` name buildPreviewDoc() tags it with. The browser
+    // reports an error's file as that name and its line counted from the top
+    // of that block, so this turns it back into the student's own file and
+    // line. Rebuilt on every preview render.
+    let previewScriptBlocks = new Map();
+    // <script src> paths that named no file in the project, reported in the
+    // console once the render's page-loaded message arrives.
+    let previewMissingScripts = [];
+    // Whether any script survived into the built page. The loop watchdog
+    // keys off this, not the raw files: a <script src> naming a missing file
+    // is dropped, so the heartbeat never comes and the watchdog would
+    // wrongly report an infinite loop.
+    let previewHasScripts = false;
+
     let currentPreviewPath = 'index.html';
 
     function gatherFileMap() {
@@ -776,6 +1018,9 @@
 
     function buildPreviewDoc(fileMap, path) {
       path = path || 'index.html';
+      previewScriptBlocks = new Map();
+      previewMissingScripts = [];
+      previewHasScripts = false;
       let html = fileMap[path];
       if (!html) {
         return path === 'index.html'
@@ -786,6 +1031,23 @@
               <p>There is no file called ${path}.</p>
             </body></html>`;
       }
+
+
+      // Tag the page's own inline <script> blocks with a sourceURL so the
+      // console can name the file and line of an error inside one. Must run
+      // first, while offsets still match the student's file. Blocks that
+      // aren't JavaScript (e.g. type="application/json") are left alone —
+      // a trailing comment would break them.
+      let inlineCount = 0;
+      html = html.replace(/(<script\b([^>]*)>)([\s\S]*?)(<\/script>)/gi, (whole, open, attrs, body, close, offset, src) => {
+        if (!body.trim() || /\bsrc\s*=/i.test(attrs)) return whole;
+        const type = /\btype\s*=\s*["']?([^"'\s>]+)/i.exec(attrs);
+        if (type && !/^(text\/javascript|application\/javascript|module)$/i.test(type[1])) return whole;
+        const name = `ns-inline-${++inlineCount}`;
+        // Line 1 of the block is the line its <script> tag ends on.
+        previewScriptBlocks.set(name, { file: path, firstLine: src.slice(0, offset + open.length).split('\n').length });
+        return `${open}${body}\n//# sourceURL=${name}\n${close}`;
+      });
 
       // Inline <link rel="stylesheet" href="..."> → <style>
       html = html.replace(/<link\b([^>]*)>/gi, (tag, attrs) => {
@@ -801,15 +1063,24 @@
       html = html.replace(/<script\b([^>]*?)><\/script>/gi, (tag, attrs) => {
         const m = attrs.match(/src=["']([^"']+)["']/i);
         if (!m) return tag;
-        return (m[1] in fileMap)
-          ? `<script>\n${fileMap[m[1]]}\n<\/script>`
-          : '';
+        if (!(m[1] in fileMap)) {
+          // A real browser would log a 404 in developer tools, which
+          // students can't open — say so in the console instead. Web
+          // addresses (a library from a CDN) aren't project files.
+          if (!/^([a-z][a-z0-9+.-]*:)?\/\//i.test(m[1])) previewMissingScripts.push(m[1]);
+          return '';
+        }
+        // The file's line 1 is the block's line 2 (after the leading \n).
+        const name = m[1].replace(/\s/g, '%20');
+        previewScriptBlocks.set(name, { file: m[1], firstLine: 0 });
+        return `<script>\n${fileMap[m[1]]}\n//# sourceURL=${name}\n<\/script>`;
       });
 
       // Only inject heartbeat when the page has scripts; otherwise a malformed
       // tag like <p (no >) causes the parser to treat <script> as an attribute
       // name, leaving the heartbeat text visible on the page.
-      if (/<script\b/i.test(html)) {
+      previewHasScripts = /<script\b/i.test(html);
+      if (previewHasScripts) {
         const heartbeat = `<script>window.parent.postMessage({type:"preview-ready"},"*")<\/script>`;
         html = /(<\/body>)/i.test(html)
           ? html.replace(/<\/body>/i, heartbeat + '\n</body>')
@@ -822,6 +1093,15 @@
       html = /(<\/body>)/i.test(html)
         ? html.replace(/<\/body>/i, NAV_INJECT + '\n</body>')
         : html + '\n' + NAV_INJECT;
+
+      // The console agent goes in FIRST — before any student script — so
+      // nothing they write can run before console.log is wrapped. Right after
+      // <head> (or <html>, or the doctype, so a doctype stays first and the
+      // page stays in standards mode). [^<>] keeps a malformed `<head` with
+      // no `>` from matching across into the next tag.
+      const start = /<head\b[^<>]*>/i.exec(html) || /<html\b[^<>]*>/i.exec(html) || /^\s*<!doctype\b[^<>]*>/i.exec(html);
+      const at = start ? start.index + start[0].length : 0;
+      html = html.slice(0, at) + CONSOLE_INJECT + html.slice(at);
 
       return html;
     }
@@ -859,10 +1139,10 @@
       currentPreviewPath = path;
       const fileMap = fileMapArg || gatherFileMap();
 
-      // Only watch for infinite loops when the student's files actually have scripts
-      const hasUserScripts = Object.values(fileMap).some(c => /<script\b/i.test(c));
-
       const html = buildPreviewDoc(fileMap, path);
+      // Only watch for infinite loops when a script actually made it into
+      // the page (see previewHasScripts).
+      const hasUserScripts = previewHasScripts;
       updateTreePanel(fileMap); // always index.html's tree — a separate, unrelated feature
       updateBreadcrumb(path);
 
@@ -871,7 +1151,14 @@
       const titleEl = document.getElementById('preview-title');
       if (titleEl) titleEl.textContent = (titleMatch && titleMatch[1].trim()) || '';
 
-      const iframe = document.getElementById('preview-frame');
+      // A brand-new frame for every render. document.open() below would
+      // otherwise reuse the previous run's window: its globals, listeners
+      // and timers carry over, so a student's top-level `let`/`const` fails
+      // with "has already been declared" on every refresh after the first,
+      // and the console agent would wrap console.log a second time.
+      const oldFrame = document.getElementById('preview-frame');
+      const iframe = oldFrame.cloneNode(false);
+      oldFrame.replaceWith(iframe);
 
       if (watchdogTimer) clearTimeout(watchdogTimer);
 
@@ -906,14 +1193,16 @@
     }
 
     // Messages from the sandboxed preview iframe: the loop-watchdog
-    // heartbeat, and link clicks intercepted by NAV_INJECT (see
-    // briefs/FIX-preview-links.md). The frame can end up same-origin
+    // heartbeat, console output from CONSOLE_INJECT, and link clicks
+    // intercepted by NAV_INJECT (see briefs/FIX-preview-links.md). The frame can end up same-origin
     // (sandbox allows it), so check e.source rather than trusting e.origin.
     window.addEventListener('message', (e) => {
       const iframe = document.getElementById('preview-frame');
       if (!iframe || e.source !== iframe.contentWindow) return;
       const d = e.data;
-      if (!d) return;
+      if (!d || typeof d !== 'object') return;
+
+      if (d.__nsConsole === true) { handleConsoleMessage(d); return; }
 
       if (d.type === 'preview-ready') {
         if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
@@ -940,6 +1229,172 @@
     function schedulePreviewRefresh() {
       if (previewTimer) clearTimeout(previewTimer);
       previewTimer = setTimeout(refreshPreview, 300);
+    }
+
+    // ── Console panel (briefs/newborn-swing-console-brief.md) ──
+    // Everything in a message came from student code: validated here,
+    // shown only with textContent, never as HTML.
+    const CONSOLE_TYPES = new Set(['log', 'info', 'warn', 'error', 'uncaught', 'hidden', 'page-loaded']);
+    const CONSOLE_MAX_LINES = 500;
+    const CONSOLE_MAX_CHARS = 2000;
+    const CONSOLE_MAX_PER_SEC = 100;
+
+    // Open/closed: an explicit click wins (consoleManual), otherwise the
+    // console opens once the project has a .js file or anything has been
+    // logged. A new error clears a manual "closed" so the console reopens;
+    // a plain log does not. Nothing is saved — reloading the IDE resets it.
+    let consoleManual = null;        // null | 'open' | 'closed'
+    let consoleHadMessage = false;
+    let consoleUnread = null;        // null | 'normal' | 'error'
+    let consoleLineCount = 0;
+    let consoleRateStart = 0, consoleRateCount = 0, consoleRateHidden = 0, consoleRateTimer = null;
+
+    function consoleShouldOpen() {
+      if (consoleManual) return consoleManual === 'open';
+      return consoleHadMessage || files.some(f => /\.js$/i.test(f.path));
+    }
+
+    function applyConsoleState() {
+      const el = document.getElementById('console');
+      const body = document.getElementById('console-body');
+      const dot = document.getElementById('console-dot');
+      const wasOpen = el.classList.contains('open');
+      const open = consoleShouldOpen();
+      el.classList.toggle('open', open);
+      document.getElementById('console-toggle').setAttribute('aria-expanded', String(open));
+      if (open) consoleUnread = null;
+      dot.classList.toggle('visible', !!consoleUnread);
+      dot.classList.toggle('error', consoleUnread === 'error');
+      if (consoleUnread) dot.setAttribute('aria-label', consoleUnread === 'error' ? 'New errors' : 'New messages');
+      else dot.removeAttribute('aria-label');
+      if (open && !wasOpen) body.scrollTop = body.scrollHeight;
+    }
+
+    function toggleConsole() {
+      consoleManual = consoleShouldOpen() ? 'closed' : 'open';
+      applyConsoleState();
+    }
+
+    function clearConsole() {
+      document.querySelectorAll('#console-body .console-line').forEach(l => l.remove());
+      consoleLineCount = 0;
+      document.getElementById('console-empty').hidden = false;
+      consoleUnread = null;
+      applyConsoleState();
+    }
+
+    function addConsoleLine(kind, text) {
+      const body = document.getElementById('console-body');
+      // Follow new lines only if the student hasn't scrolled up to read.
+      const atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 4;
+
+      const line = document.createElement('div');
+      line.className = 'console-line ' + kind;
+      const mark = document.createElement('span');
+      mark.className = 'console-mark';
+      if (kind === 'warn' || kind === 'error') {
+        mark.textContent = kind === 'warn' ? '⚠' : '✖';
+        mark.setAttribute('role', 'img');
+        mark.setAttribute('aria-label', kind === 'warn' ? 'Warning' : 'Error');
+      }
+      const msg = document.createElement('span');
+      msg.textContent = text.length > CONSOLE_MAX_CHARS ? text.slice(0, CONSOLE_MAX_CHARS) + '…' : text;
+      line.append(mark, msg);
+      body.appendChild(line);
+
+      consoleLineCount++;
+      while (consoleLineCount > CONSOLE_MAX_LINES) {
+        body.querySelector('.console-line').remove();
+        consoleLineCount--;
+      }
+      document.getElementById('console-empty').hidden = true;
+      if (atBottom) body.scrollTop = body.scrollHeight;
+    }
+
+    function flushConsoleHidden() {
+      if (consoleRateTimer) { clearTimeout(consoleRateTimer); consoleRateTimer = null; }
+      if (consoleRateHidden) {
+        addConsoleLine('note', `${consoleRateHidden} more messages hidden`);
+        consoleRateHidden = 0;
+      }
+    }
+
+    // Turns the frame's file name + block-relative line into the student's
+    // own file and line (see previewScriptBlocks). '' when unknown.
+    function consoleErrorPlace(d) {
+      const file = typeof d.file === 'string' ? d.file : '';
+      const line = Number.isInteger(d.line) && d.line > 0 ? d.line : 0;
+      const block = previewScriptBlocks.get(file);
+      if (block) {
+        const fileLine = block.firstLine + line - 1;
+        return fileLine > 0 ? `${block.file}, line ${fileLine}` : block.file;
+      }
+      // Reported against the page itself but not inside a tagged block —
+      // e.g. an onclick="..." attribute. The line number there is
+      // meaningless, so name the page only.
+      if (d.samePage === true || file === location.href) return currentPreviewPath;
+      // A script loaded from the web (e.g. a library from a CDN).
+      if (/^https?:/i.test(file)) {
+        const name = file.split(/[?#]/)[0].split('/').pop() || file;
+        return line ? `${name}, line ${line}` : name;
+      }
+      return '';
+    }
+
+    function handleConsoleMessage(d) {
+      if (!CONSOLE_TYPES.has(d.type)) return;
+
+      if (d.type === 'page-loaded') {
+        // A fresh run of the preview: start the console over too.
+        consoleRateHidden = 0;
+        if (consoleRateTimer) { clearTimeout(consoleRateTimer); consoleRateTimer = null; }
+        clearConsole();
+        for (const src of previewMissingScripts) {
+          showConsoleLine('error', `${currentPreviewPath}: <script src="${src}"> did not load — there is no file called ${src} in this project.`);
+        }
+        return;
+      }
+
+      // The frame limits itself, but student code can post here directly,
+      // so enforce the same limit on this side.
+      const now = Date.now();
+      if (now - consoleRateStart >= 1000) { flushConsoleHidden(); consoleRateStart = now; consoleRateCount = 0; }
+      if (consoleRateCount >= CONSOLE_MAX_PER_SEC) {
+        consoleRateHidden++;
+        if (!consoleRateTimer) consoleRateTimer = setTimeout(flushConsoleHidden, 1000 - (now - consoleRateStart));
+        return;
+      }
+      consoleRateCount++;
+
+      let kind, text;
+      if (d.type === 'hidden') {
+        const n = Number.isInteger(d.count) && d.count > 0 ? d.count : 0;
+        if (!n) return;
+        kind = 'note';
+        text = `${n} more messages hidden`;
+      } else {
+        const values = Array.isArray(d.values) ? d.values.slice(0, 100).map(v => String(v)) : [];
+        text = values.join(' ');
+        if (d.type === 'uncaught') {
+          // Chrome prefixes "Uncaught " itself and Firefox doesn't, and a
+          // syntax error in a document.write()'d page comes wrapped in the
+          // write call's own message — normalize both away.
+          text = 'Uncaught ' + text.replace(/^Uncaught /, '').replace("Failed to execute 'write' on 'Document': ", '');
+          const place = consoleErrorPlace(d);
+          if (place) text = `${place}: ${text}`;
+        }
+        kind = d.type === 'warn' ? 'warn' : (d.type === 'error' || d.type === 'uncaught') ? 'error' : 'log';
+      }
+      showConsoleLine(kind, text);
+    }
+
+    // Adds a line and applies the open/dot rules for it.
+    function showConsoleLine(kind, text) {
+      consoleHadMessage = true;
+      if (kind === 'error' && consoleManual === 'closed') consoleManual = null;
+      addConsoleLine(kind, text);
+      if (!consoleShouldOpen()) consoleUnread = (kind === 'error' || consoleUnread === 'error') ? 'error' : 'normal';
+      applyConsoleState();
     }
 
     // ── Autosave ──
@@ -1008,6 +1463,9 @@
       newBtn.textContent = '+ New file';
       newBtn.addEventListener('click', newFile);
       bar.appendChild(newBtn);
+
+      // The file list just changed: adding the first .js file opens the console.
+      applyConsoleState();
     }
 
     async function newFile() {
