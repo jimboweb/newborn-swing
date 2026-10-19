@@ -120,7 +120,7 @@ This means:
 frontmatter, not the filename, to identify which checkpoint the file belongs to. Always
 include `code: T3` (or whatever the code is) in the frontmatter.
 
-**Existing full card files:** `T0.md`, `T0a.md`, `T1a-what-a-tag-is.md`, `T3-headings.md`, `T7.md`
+**Existing full card files:** `T0.md`, `T0a.md`, `T1a-what-a-tag-is.md`, `T3-headings.md`, `T7.md` (43 checkpoints total)
 
 ---
 
@@ -236,3 +236,25 @@ if (titleEl) titleEl.textContent = (titleMatch && titleMatch[1].trim()) || '';
 
 The preview header now shows e.g. `Blue Door Diner` alongside the "Preview" label,
 updating live as the student edits the `<title>` tag.
+
+---
+
+## 11. Remove T5 "Putting one tag inside another"
+
+Nesting is now taught as part of the lists lesson (T4), so the standalone nesting card
+was redundant.
+
+**What changed:**
+
+- T5 removed from `db/checkpoints_seed.json`; T6–T21 trunk ordinals each shifted down
+  by one so T6 Pictures follows immediately after T4 Lists
+- `db/remove_t5.js` — one-time migration that deletes T5 from the database (idempotent:
+  exits cleanly if T5 is already gone or has student progress)
+- `Procfile` release phase updated to run `node db/remove_t5.js` before `seed_trunk.js`
+- `briefs/checkpoints_seed.json` synced
+
+The trunk sequence is now 43 cards. Branch card ordinals are unchanged.
+
+**Note on the prereqs table:** the foreign-key column on `checkpoint_prereqs` that points
+back to the required card is named `requires_checkpoint_id`, not `prereq_id`. Use that
+name in any future migration that touches this table.
