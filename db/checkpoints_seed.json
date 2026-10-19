@@ -169,7 +169,7 @@
   },
   {
     "code": "T11",
-    "title": "Colour",
+    "title": "Color",
     "branch": "trunk",
     "depth": null,
     "ordinal": 13,
@@ -239,7 +239,7 @@
   },
   {
     "code": "T16",
-    "title": "Putting things in the middle",
+    "title": "Alignment and Centering",
     "branch": "trunk",
     "depth": null,
     "ordinal": 18,
@@ -267,7 +267,7 @@
   },
   {
     "code": "T18",
-    "title": "When nothing happens",
+    "title": "Menu Final Project",
     "branch": "trunk",
     "depth": null,
     "ordinal": 20,
@@ -280,50 +280,8 @@
     "video_suggested": true
   },
   {
-    "code": "T19",
-    "title": "Writing criteria a partner can test",
-    "branch": "trunk",
-    "depth": null,
-    "ordinal": 21,
-    "needs": [],
-    "session": "10",
-    "goal": "You can write down what 'finished' means so someone else can check it without asking you.",
-    "self_check": "Hand it to a partner. Did they get through it without asking you anything?",
-    "new_things": "no code",
-    "fix_this": "A criterion saying 'the menu should look nice'. Rewrite it so two people would agree.",
-    "video_suggested": false
-  },
-  {
-    "code": "T20",
-    "title": "Writing a bug report",
-    "branch": "trunk",
-    "depth": null,
-    "ordinal": 22,
-    "needs": [],
-    "session": "11",
-    "goal": "You can report a problem so precisely someone else can see it themselves.",
-    "self_check": "Could someone follow your steps and see the same problem without you there?",
-    "new_things": "no code",
-    "fix_this": "A report saying 'the page is broken'.",
-    "video_suggested": false
-  },
-  {
-    "code": "T21",
-    "title": "Giving useful feedback",
-    "branch": "trunk",
-    "depth": null,
-    "ordinal": 23,
-    "needs": [],
-    "session": "11",
-    "goal": "You can say what is wrong with a page without being unkind or vague.",
-    "self_check": "Does it name one thing, on one part of the page, that could actually be changed?",
-    "new_things": "no code",
-    "fix_this": "Feedback saying 'the colours are bad'. Rewrite so the author knows what to change.",
-    "video_suggested": false
-  },
-  {
     "code": "V1",
-    "title": "Grouping things together",
+    "title": "Block and lines",
     "branch": "visual",
     "depth": 1,
     "ordinal": 1,
@@ -339,12 +297,14 @@
   },
   {
     "code": "V2",
-    "title": "Photographs that load fast",
+    "title": "Div and span",
     "branch": "visual",
     "depth": 1,
     "ordinal": 2,
     "needs": [
-      "T17"
+      "T13",
+      "T14",
+      "T16"
     ],
     "session": null,
     "goal": "You can add real photos of your dishes without making the page slow.",
@@ -475,10 +435,10 @@
       "I1"
     ],
     "session": null,
-    "goal": "You can reach into the page from JavaScript and change something.",
-    "self_check": "Did the thing on the page change when you reloaded?",
-    "new_things": "querySelector, textContent",
-    "fix_this": "A script that runs before the page has loaded, so it finds nothing.",
+    "goal": "You can find something on your page from JavaScript and change its words.",
+    "self_check": "Did the words on the page change? Does your HTML file still say the old words?",
+    "new_things": "`querySelector`, `textContent`, where the script tag goes",
+    "fix_this": "A script tag in the `<head>`, so the script runs before the heading exists and finds nothing.",
     "video_suggested": false
   },
   {
@@ -493,13 +453,13 @@
     "session": null,
     "goal": "Something on your page reacts when a visitor clicks it.",
     "self_check": "Write down what should happen before you click. Did exactly that happen?",
-    "new_things": "addEventListener, `<button>`",
-    "fix_this": "A button wired to the wrong element, so clicking does nothing.",
+    "new_things": "`addEventListener`, `<button>`, `style.display`",
+    "fix_this": "`style.display = none` with no quotes, so the console tab says `none is not defined`.",
     "video_suggested": false
   },
   {
     "code": "I4",
-    "title": "Show and hide",
+    "title": "Hiding many things",
     "branch": "interactive",
     "depth": 2,
     "ordinal": 12,
@@ -507,15 +467,15 @@
       "I3"
     ],
     "session": null,
-    "goal": "A visitor can open and close parts of your menu.",
+    "goal": "One button hides every meat dish, and a second click brings them back.",
     "self_check": "Click twice. Are you back where you started?",
-    "new_things": "classList, hidden",
-    "fix_this": "A show/hide button that hides but will not bring anything back.",
+    "new_things": "`querySelectorAll`, `for...of`, a variable that remembers yes or no",
+    "fix_this": "A button that hides the meat dishes but never brings them back, because `let meatHidden = false;` sits inside the click function.",
     "video_suggested": false
   },
   {
     "code": "I5",
-    "title": "Adding up an order",
+    "title": "Collapsing a section",
     "branch": "interactive",
     "depth": 3,
     "ordinal": 13,
@@ -523,31 +483,32 @@
       "I3"
     ],
     "session": null,
-    "goal": "A visitor can choose dishes and see the total.",
-    "self_check": "Add three dishes and remove one. Does the total match what you work out on paper?",
-    "new_things": "numbers, running totals, toFixed",
-    "fix_this": "A total showing 12.300000000000001 instead of 12.30.",
+    "goal": "A visitor can close and reopen each section of your menu.",
+    "self_check": "Click each section's button twice. Is every section back where it started?",
+    "new_things": "`id`, the `#` selector",
+    "fix_this": "An `if` with one equals sign, so the section hides on every click and never comes back.",
     "video_suggested": false
   },
   {
     "code": "I6",
-    "title": "Remembering what they chose",
+    "title": "Tabs",
     "branch": "interactive",
     "depth": 3,
     "ordinal": 14,
     "needs": [
+      "I4",
       "I5"
     ],
     "session": null,
-    "goal": "Your page keeps track of what the visitor has done so far.",
-    "self_check": "Do a dozen random clicks. Does the screen still match the underlying numbers?",
-    "new_things": "state, arrays",
-    "fix_this": "A page where the display and the real total quietly disagree.",
+    "goal": "Your menu shows one section at a time, picked with tabs.",
+    "self_check": "Click every tab in turn. Is exactly one panel showing each time?",
+    "new_things": "hiding them all, then showing one",
+    "fix_this": "A tab that shows its panel first, then hides every panel, including its own.",
     "video_suggested": false
   },
   {
-    "code": "D1",
-    "title": "The menu as a list of data",
+    "code": "D0",
+    "title": "A thing with named parts",
     "branch": "data",
     "depth": 1,
     "ordinal": 15,
@@ -555,10 +516,43 @@
       "I1"
     ],
     "session": null,
-    "goal": "Your dishes live in a list in JavaScript instead of being typed into the HTML.",
-    "self_check": "Is every dish in the list, with the same fields, spelled the same way every time?",
-    "new_things": "arrays, objects",
-    "fix_this": "A dish object missing its price. What should happen to it?",
+    "goal": "You can write one dish as an object, and the menu as a list of them.",
+    "self_check": "Log `menu.length`. Does it match the number of dishes you wrote?",
+    "new_things": "objects, dot notation, a list of objects",
+    "fix_this": "A dish written with equals signs instead of colons: `{ name = \"Soup\" }`.",
+    "video_suggested": false
+  },
+  {
+    "code": "D1",
+    "title": "Getting the menu from the data service",
+    "branch": "data",
+    "depth": 1,
+    "ordinal": 16,
+    "needs": [
+      "D0"
+    ],
+    "session": null,
+    "goal": "Your page asks your data address for the menu, and you can see the dishes in the console tab.",
+    "self_check": "Does the console tab show every dish from your Menu data grid?",
+    "new_things": "the data address, JSON, the block that asks for it",
+    "fix_this": "`console.log(dishes)` outside `showMenu`, where `dishes` does not exist yet.",
+    "video_suggested": false
+  },
+  {
+    "code": "D1a",
+    "title": "Waiting for the data",
+    "branch": "data",
+    "depth": 2,
+    "ordinal": 17,
+    "needs": [
+      "D1",
+      "I3"
+    ],
+    "session": null,
+    "goal": "Your page shows a loading message until the menu arrives.",
+    "self_check": "Add `?delay=3` to your data address. Do you see the loading message first, then the menu? Take the delay off afterward.",
+    "new_things": "\"when the data arrives, then\u2026\"",
+    "fix_this": "Code that uses the dishes before they have arrived, so the console tab says `dishes is not defined`.",
     "video_suggested": false
   },
   {
@@ -566,14 +560,14 @@
     "title": "Building the page from the data",
     "branch": "data",
     "depth": 2,
-    "ordinal": 16,
+    "ordinal": 18,
     "needs": [
-      "D1"
+      "D1a"
     ],
     "session": null,
     "goal": "The HTML for your dishes is written by your code, not by you.",
-    "self_check": "Add a dish to the list only. Does it appear without you touching the HTML?",
-    "new_things": "loops, template strings, innerHTML",
+    "self_check": "Add a dish in the Menu data tab only. Does it appear without you touching the HTML?",
+    "new_things": "`for...of`, building up a piece of text, `innerHTML`",
     "fix_this": "A loop that only ever shows the last dish.",
     "video_suggested": true
   },
@@ -582,15 +576,15 @@
     "title": "When the data is wrong",
     "branch": "data",
     "depth": 2,
-    "ordinal": 17,
+    "ordinal": 19,
     "needs": [
       "D2"
     ],
     "session": null,
     "goal": "Your page copes with a dish that is missing something.",
-    "self_check": "Delete a field from one dish. Does the page still look deliberate?",
-    "new_things": "if, defaults, empty state",
-    "fix_this": "A dish with no description, printing 'undefined' on the page for everyone to see.",
+    "self_check": "Clear one dish's description in the Menu data tab. Does the page still look deliberate?",
+    "new_things": "`if`, defaults, empty states",
+    "fix_this": "A dish with no description, printing `undefined` on the page for everyone to see.",
     "video_suggested": false
   },
   {
@@ -598,7 +592,7 @@
     "title": "Filtering",
     "branch": "data",
     "depth": 3,
-    "ordinal": 18,
+    "ordinal": 20,
     "needs": [
       "D2",
       "I3"
@@ -606,8 +600,8 @@
     "session": null,
     "goal": "A visitor can choose to see only some of the dishes.",
     "self_check": "Choose each filter. Does the number of dishes shown match what you counted by hand?",
-    "new_things": "filter, given/when/then",
-    "fix_this": "A filter that hides everything, because the tag names do not match the data.",
+    "new_things": "a loop with `if` and `push`, `includes`, given/when/then",
+    "fix_this": "A filter that misses a dish because its dietary note says \"Vegetarian\" with a capital V.",
     "video_suggested": false
   },
   {
@@ -615,31 +609,48 @@
     "title": "Sorting",
     "branch": "data",
     "depth": 3,
-    "ordinal": 19,
+    "ordinal": 21,
     "needs": [
       "D2"
     ],
     "session": null,
     "goal": "A visitor can put the menu in price order.",
     "self_check": "Sort by price. Read the prices top to bottom. Are they really in order?",
-    "new_things": "sort, comparing numbers",
-    "fix_this": "A price sort that puts $10.00 before $9.00.",
+    "new_things": "`sort`, a recipe for sorting by price",
+    "fix_this": "A price sort that puts 10 before 9.",
     "video_suggested": false
   },
   {
     "code": "D6",
-    "title": "One file, many pages",
+    "title": "One data service, many pages",
     "branch": "data",
     "depth": 3,
-    "ordinal": 20,
+    "ordinal": 22,
     "needs": [
       "D2"
     ],
     "session": null,
-    "goal": "The same data file fills more than one page of your site.",
-    "self_check": "Change one price in the data file. Did it change everywhere it appears?",
-    "new_things": "reuse, shared data",
-    "fix_this": "Two pages with two copies of the data that have drifted apart.",
+    "goal": "More than one page of your site reads the same data address.",
+    "self_check": "Change one price in the Menu data tab. Did it change on every page?",
+    "new_things": "reusing the data address",
+    "fix_this": "Two pages with two copies of the menu that have drifted apart.",
+    "video_suggested": false
+  },
+  {
+    "code": "D7",
+    "title": "Adding up an order",
+    "branch": "data",
+    "depth": 3,
+    "ordinal": 23,
+    "needs": [
+      "D2",
+      "I4"
+    ],
+    "session": null,
+    "goal": "A visitor can pick dishes and see the total.",
+    "self_check": "Add three dishes. Does the total match what you work out on paper?",
+    "new_things": "a list for the order, a loop with a position number, a total worked out every time",
+    "fix_this": "A total showing `16.990000000000002` instead of `16.99`.",
     "video_suggested": false
   }
 ]
