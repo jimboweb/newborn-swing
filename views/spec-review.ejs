@@ -30,6 +30,19 @@
     .status-pill { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.72rem; font-weight: 700; }
     .status-pass { background: #d1fae5; color: #065f46; }
     .status-pending { background: #f0f0f0; color: #888; }
+    .status-partial { background: #fef3c7; color: #92400e; }
+    .status-warn { background: #fee2e2; color: #991b1b; }
+    .work-row > summary { list-style: none; display: grid; grid-template-columns: 1.4fr 1fr 1.4fr; gap: 0.75rem; align-items: center; padding: 0.6rem 0.4rem; border-bottom: 1px solid #eee; color: #222; font-size: 0.88rem; }
+    .work-row > summary::-webkit-details-marker { display: none; }
+    .work-row > summary:hover { background: #f8fafc; }
+    .work-row[open] > summary { background: #f1f5f9; }
+    .work-head { display: grid; grid-template-columns: 1.4fr 1fr 1.4fr; gap: 0.75rem; padding: 0 0.4rem 0.4rem; color: #666; font-size: 0.78rem; text-transform: uppercase; border-bottom: 1px solid #ddd; }
+    .work-body { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem 0.4rem 1.25rem; border-bottom: 1px solid #ddd; }
+    .work-body h4 { font-size: 0.82rem; color: #555; margin: 0 0 0.4rem; }
+    .work-body pre { background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 4px; padding: 0.6rem 0.75rem; font-size: 0.78rem; overflow-x: auto; margin: 0 0 0.5rem; white-space: pre; }
+    .fail-line { font-family: monospace; font-size: 0.76rem; color: #991b1b; padding: 0.1rem 0; }
+    .muted { color: #888; font-size: 0.8rem; }
+    @media (max-width: 700px) { .work-body { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -88,9 +101,13 @@
 
   <section>
     <h3>Pairings</h3>
-    <p style="font-size:0.88rem;color:#555;margin-bottom:0.75rem"><%= sharedCount %> spec<%= sharedCount === 1 ? '' : 's' %> currently shared and eligible for pairing.</p>
+    <p style="font-size:0.88rem;color:#555;margin-bottom:0.75rem">
+      <%= sharedCount %> spec<%= sharedCount === 1 ? '' : 's' %> shared.
+      <strong><%= readyCount %></strong> student<%= readyCount === 1 ? '' : 's' %> with a shared spec still waiting for an assignment —
+      a new round only pairs these students; anyone already assigned keeps their spec.
+    </p>
     <form method="POST" action="/spec/problems/<%= problem.id %>/pairings/generate">
-      <button type="submit" class="btn btn-generate" <%= sharedCount < 2 ? 'disabled' : '' %>>Generate a round</button>
+      <button type="submit" class="btn btn-generate" <%= sharedCount < 2 || readyCount === 0 ? 'disabled' : '' %>>Generate a round</button>
     </form>
 
     <% if (pairings.length) { %>
@@ -115,6 +132,84 @@
           <% }) %>
         </tbody>
       </table>
+    <% } %>
+  </section>
+
+  <%
+    const specLabels = {
+      shared: ['shared', 'status-pass'],
+      awaiting_approval: ['awaiting approval', 'status-partial'],
+      needs_revision: ['needs revision', 'status-warn'],
+    };
+  %>
+  <section>
+    <h3>Student work (<%= students.length %>)</h3>
+    <% if (!students.length) { %>
+      <p class="empty">No students are assigned this problem yet.</p>
+    <% } else { %>
+      <p class="muted" style="margin-bottom:0.75rem">Click a student to see the spec they wrote and the code they wrote for their assigned spec.</p>
+      <div class="work-head"><span>Student</span><span>Their spec</span><span>Their solution</span></div>
+      <% students.forEach(st => {
+           const latest = st.assignments[0] || null;
+           const impl = latest && latest.implementation;
+           const tr = impl && impl.test_result;
+      %>
+        <details class="work-row">
+          <summary>
+            <span><%= st.name %><br><span class="muted"><%= st.email %></span></span>
+            <span>
+              <% if (st.spec) { const [label, cls] = specLabels[st.spec.status] || [st.spec.status, 'status-pending']; %>
+                <span class="status-pill <%= cls %>"><%= label %></span>
+                <span class="muted"><%= st.caseCount %> example<%= st.caseCount === 1 ? '' : 's' %></span>
+              <% } else { %>
+                <span class="status-pill status-pending">no spec</span>
+              <% } %>
+            </span>
+            <span>
+              <% if (!latest) { %>
+                <span class="status-pill status-pending">not assigned</span>
+              <% } else if (!tr) { %>
+                <span class="status-pill status-pending">not submitted</span>
+                <span class="muted">implementing <%= latest.pairing.author_name %>'s spec</span>
+              <% } else { %>
+                <span class="status-pill <%= tr.passed === tr.total ? 'status-pass' : 'status-partial' %>"><%= tr.passed %>/<%= tr.total %> passed</span>
+                <span class="muted">implementing <%= latest.pairing.author_name %>'s spec</span>
+              <% } %>
+            </span>
+          </summary>
+          <div class="work-body">
+            <div>
+              <h4>Spec <%= st.name %> wrote</h4>
+              <% if (st.specDocstring) { %>
+                <pre><%= st.specDocstring %></pre>
+                <% if (st.spec.teacher_comment) { %><p class="muted">Your comment: <%= st.spec.teacher_comment %></p><% } %>
+              <% } else { %>
+                <p class="empty">Hasn't saved a spec yet.</p>
+              <% } %>
+            </div>
+            <div>
+              <% if (!st.assignments.length) { %>
+                <h4>Solution</h4>
+                <p class="empty">Not assigned a spec yet.</p>
+              <% } %>
+              <% st.assignments.forEach(a => { const im = a.implementation; const r = im && im.test_result; %>
+                <h4>Round <%= a.pairing.round %> — solving <%= a.pairing.author_name %>'s spec</h4>
+                <% if (!im) { %>
+                  <p class="empty">Hasn't submitted code yet.</p>
+                <% } else { %>
+                  <pre><%= im.code_text %></pre>
+                  <% if (r) { %>
+                    <p class="muted"><%= r.passed %>/<%= r.total %> examples passed<% if (im.submitted_at) { %> · submitted <%= new Date(im.submitted_at).toLocaleString() %><% } %></p>
+                    <% (r.details || []).filter(d => !d.passed).forEach(d => { %>
+                      <div class="fail-line">&#10007; <%= JSON.stringify(d.inputs) %> &#8594; expected <%= d.expect_type === 'raises' ? 'an error' : JSON.stringify(d.expected_value) %><%= d.message ? ' — ' + d.message : '' %></div>
+                    <% }) %>
+                  <% } %>
+                <% } %>
+              <% }) %>
+            </div>
+          </div>
+        </details>
+      <% }) %>
     <% } %>
   </section>
 

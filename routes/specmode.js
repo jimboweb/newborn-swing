@@ -312,12 +312,63 @@ router.get('/problems/:id/review', requireTeacher, async (req, res, next) => {
       [problem.id]
     );
 
+    // Everyone the problem is assigned to, plus anyone who already has work
+    // on it (in case an assignment was later removed).
+    const roster = await pool.query(
+      `SELECT u.id, u.name, u.email FROM users u
+       WHERE (u.role = 'student' AND EXISTS (
+                SELECT 1 FROM assignments a WHERE a.problem_id = $1 AND (
+                  (a.class_id IS NULL AND a.student_id IS NULL)
+                  OR a.student_id = u.id
+                  OR EXISTS (SELECT 1 FROM class_members cm WHERE cm.class_id = a.class_id AND cm.student_id = u.id)
+                )))
+          OR EXISTS (SELECT 1 FROM specs WHERE problem_id = $1 AND student_id = u.id)
+          OR EXISTS (SELECT 1 FROM pairings WHERE problem_id = $1 AND implementer_id = u.id)
+       ORDER BY u.name`,
+      [problem.id]
+    );
+    const allSpecs = await pool.query('SELECT * FROM specs WHERE problem_id = $1', [problem.id]);
+    const allCases = await pool.query(
+      `SELECT tc.* FROM spec_test_cases tc JOIN specs sp ON sp.id = tc.spec_id
+       WHERE sp.problem_id = $1 ORDER BY tc.spec_id, tc.ord`,
+      [problem.id]
+    );
+    const allImpls = await pool.query(
+      `SELECT im.*, pr.implementer_id FROM implementations im
+       JOIN pairings pr ON pr.id = im.pairing_id WHERE pr.problem_id = $1`,
+      [problem.id]
+    );
+    const specByStudent = new Map(allSpecs.rows.map(sp => [sp.student_id, sp]));
+    const casesBySpec = new Map();
+    for (const tc of allCases.rows) {
+      if (!casesBySpec.has(tc.spec_id)) casesBySpec.set(tc.spec_id, []);
+      casesBySpec.get(tc.spec_id).push(tc);
+    }
+    const implByPairing = new Map(allImpls.rows.map(im => [im.pairing_id, im]));
+
+    const students = roster.rows.map(u => {
+      const spec = specByStudent.get(u.id) || null;
+      const assignments = pairings.rows
+        .filter(pr => pr.implementer_id === u.id)
+        .map(pr => ({ pairing: pr, implementation: implByPairing.get(pr.id) || null }));
+      return {
+        ...u,
+        spec,
+        caseCount: spec ? (casesBySpec.get(spec.id) || []).length : 0,
+        specDocstring: spec ? buildDocstring(problem, spec, casesBySpec.get(spec.id) || []) : null,
+        assignments,
+      };
+    });
+    const readyCount = students.filter(st => st.spec && st.spec.status === 'shared' && !st.assignments.length).length;
+
     res.render('spec-review', {
       user: req.user,
       problem,
       awaiting: awaiting.rows,
       sharedCount: parseInt(sharedCount.rows[0].count, 10),
+      readyCount,
       pairings: pairings.rows,
+      students,
     });
   } catch (err) { next(err); }
 });
@@ -356,22 +407,48 @@ router.post('/problems/:id/pairings/generate', requireTeacher, async (req, res, 
     const shared = await pool.query(
       `SELECT student_id FROM specs WHERE problem_id = $1 AND status = 'shared'`, [problem.id]
     );
-    const students = shared.rows.map(r => r.student_id);
-    if (students.length >= 2) {
-      // Simple round-robin: each student implements the next student's spec,
-      // wrapped in a cycle. Directed pairings only — see brief's "out of
-      // scope: reciprocal-pairing UI shortcut."
-      for (let i = students.length - 1; i > 0; i--) {
+    const authors = shared.rows.map(r => r.student_id);
+    const prior = await pool.query(
+      `SELECT spec_author_id, implementer_id FROM pairings WHERE problem_id = $1`, [problem.id]
+    );
+    // A round only hands out work to students who don't have an assignment
+    // yet — anyone paired in an earlier round keeps the spec they were given.
+    const alreadyAssigned = new Set(prior.rows.map(r => r.implementer_id));
+    const newcomers = authors.filter(id => !alreadyAssigned.has(id));
+
+    if (authors.length >= 2 && newcomers.length) {
+      for (let i = newcomers.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [students[i], students[j]] = [students[j], students[i]];
+        [newcomers[i], newcomers[j]] = [newcomers[j], newcomers[i]];
       }
+      const pairs = [];
+      if (newcomers.length >= 2) {
+        // Round-robin among the newcomers only: each implements the next
+        // newcomer's spec, so every new spec gets exactly one implementer.
+        // Directed pairings only — see brief's "out of scope:
+        // reciprocal-pairing UI shortcut."
+        for (let i = 0; i < newcomers.length; i++) {
+          pairs.push({ author: newcomers[i], implementer: newcomers[(i + 1) % newcomers.length] });
+        }
+      } else {
+        // A lone newcomer can't be cycled, so they get an existing spec —
+        // whichever has been handed out the fewest times, ties broken randomly.
+        const implementer = newcomers[0];
+        const timesUsed = new Map(authors.map(id => [id, 0]));
+        for (const r of prior.rows) {
+          if (timesUsed.has(r.spec_author_id)) timesUsed.set(r.spec_author_id, timesUsed.get(r.spec_author_id) + 1);
+        }
+        const candidates = authors.filter(id => id !== implementer);
+        const fewest = Math.min(...candidates.map(id => timesUsed.get(id)));
+        const leastUsed = candidates.filter(id => timesUsed.get(id) === fewest);
+        pairs.push({ author: leastUsed[Math.floor(Math.random() * leastUsed.length)], implementer });
+      }
+
       const roundResult = await pool.query(
         `SELECT COALESCE(MAX(round), 0) + 1 AS next_round FROM pairings WHERE problem_id = $1`, [problem.id]
       );
       const round = roundResult.rows[0].next_round;
-      for (let i = 0; i < students.length; i++) {
-        const author = students[i];
-        const implementer = students[(i + 1) % students.length];
+      for (const { author, implementer } of pairs) {
         await pool.query(
           `INSERT INTO pairings (problem_id, round, spec_author_id, implementer_id) VALUES ($1, $2, $3, $4)`,
           [problem.id, round, author, implementer]
