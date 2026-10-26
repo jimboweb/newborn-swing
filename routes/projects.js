@@ -5,12 +5,12 @@ const pool = require('../db');
 const { requireAuth, requireTeacher } = require('../middleware/auth');
 
 // ── Menu data (briefs/newborn-swing-menu-data-brief.md) ──
-// Only 'restaurant' projects get a menu — the brief's whole narrative is
+// Only 'restaurant' projects own a menu — the brief's whole narrative is
 // "build their restaurant menu page", and a public id + starter row on every
 // throwaway "Try it" scratch project (one per checkpoint a student opens)
-// would be pure clutter. The table and the /api/menu/:id address are generic
-// over any project id, so nothing stops a teacher pointing one at a scratch
-// project by hand if that's ever wanted later.
+// would be pure clutter. "Try it" projects for data-branch cards (D0–D7)
+// borrow the student's restaurant menu instead (see menuProjectFor), so every
+// D card edits the same grid and fetches the same data address.
 const MENU_ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
 const MENU_ID_LENGTH = 10;
 const MENU_LIMITS = { maxRows: 100, nameMax: 100, descMax: 500, dietaryMax: 10, dietaryWordMax: 30 };
@@ -175,22 +175,50 @@ async function seedFiles(projectId, fileMap) {
   }
 }
 
+// The student's restaurant project, or null. With create, makes it first
+// (starter files + menu data), exactly as Open Editor does.
+async function findRestaurantProject(userId, { create = false } = {}) {
+  const existing = await pool.query(
+    `SELECT * FROM projects WHERE user_id = $1 AND kind = 'restaurant' ORDER BY created_at ASC LIMIT 1`,
+    [userId]
+  );
+  if (existing.rows.length || !create) return existing.rows[0] || null;
+
+  const { rows } = await pool.query(
+    `INSERT INTO projects (user_id, kind, title) VALUES ($1, 'restaurant', 'My Restaurant Website') RETURNING id`,
+    [userId]
+  );
+  await seedFiles(rows[0].id, RESTAURANT_STARTER);
+  await createMenuData(rows[0].id);
+  const created = await pool.query('SELECT * FROM projects WHERE id = $1', [rows[0].id]);
+  return created.rows[0];
+}
+
+// Scratch projects are titled "<card code> scratch" (see POST /try/:cardCode).
+async function isDataBranchScratch(project) {
+  if (project.kind !== 'scratch') return false;
+  const code = project.title.replace(/ scratch$/, '');
+  const { rows } = await pool.query(
+    `SELECT 1 FROM checkpoints WHERE UPPER(code) = UPPER($1) AND branch = 'data'`, [code]
+  );
+  return rows.length > 0;
+}
+
+// Which project's menu a project shows and saves: its own for a restaurant
+// project, the owner's restaurant menu for a data-branch "Try it" project,
+// and none otherwise. Returns a projects row with a menu_public_id, or null.
+async function menuProjectFor(project, { create = false } = {}) {
+  if (project.kind === 'restaurant') return project.menu_public_id ? project : null;
+  if (!(await isDataBranchScratch(project))) return null;
+  const restaurant = await findRestaurantProject(project.user_id, { create });
+  return restaurant && restaurant.menu_public_id ? restaurant : null;
+}
+
 // GET /projects/restaurant — find or create restaurant project, redirect to IDE
 router.get('/restaurant', requireAuth, async (req, res, next) => {
   try {
-    const existing = await pool.query(
-      `SELECT id FROM projects WHERE user_id = $1 AND kind = 'restaurant' ORDER BY created_at ASC LIMIT 1`,
-      [req.user.id]
-    );
-    if (existing.rows.length) return res.redirect(`/projects/${existing.rows[0].id}`);
-
-    const { rows } = await pool.query(
-      `INSERT INTO projects (user_id, kind, title) VALUES ($1, 'restaurant', 'My Restaurant Website') RETURNING id`,
-      [req.user.id]
-    );
-    await seedFiles(rows[0].id, RESTAURANT_STARTER);
-    await createMenuData(rows[0].id);
-    res.redirect(`/projects/${rows[0].id}`);
+    const project = await findRestaurantProject(req.user.id, { create: true });
+    res.redirect(`/projects/${project.id}`);
   } catch (err) {
     next(err);
   }
@@ -284,11 +312,14 @@ router.get('/student/:studentId/scratch/:code', requireTeacher, async (req, res,
       [project.id]
     );
     const filesJson = JSON.stringify(rows).replace(/<\//g, '<\\/');
-    // Scratch projects (one per checkpoint) never get menu data — see the
-    // comment above createMenuData.
+    // Data-branch cards show the student's shared restaurant menu, read-only;
+    // other scratch projects have none — see the comment above createMenuData.
+    const menuProject = await menuProjectFor(project);
+    const menuRows = menuProject ? await fetchMenuRows(menuProject.id) : [];
+    const menuJson = JSON.stringify(menuRows).replace(/<\//g, '<\\/');
     res.render('web-ide', {
       project, filesJson, cardCode: null, readonly: true,
-      menuPublicId: null, menuJson: '[]', canEditMenu: false,
+      menuPublicId: menuProject ? menuProject.menu_public_id : null, menuJson, canEditMenu: false,
     });
   } catch (err) { next(err); }
 });
@@ -302,16 +333,19 @@ router.get('/:id', requireAuth, requireProjectOwner, async (req, res, next) => {
     );
     // Safe JSON for inline script injection
     const filesJson = JSON.stringify(rows).replace(/<\//g, '<\\/');
-    const menuRows = req.project.menu_public_id ? await fetchMenuRows(req.project.id) : [];
+    // A D card opened before Open Editor ever was still needs a menu, so
+    // this creates the student's restaurant project if it doesn't exist yet.
+    const menuProject = await menuProjectFor(req.project, { create: true });
+    const menuRows = menuProject ? await fetchMenuRows(menuProject.id) : [];
     const menuJson = JSON.stringify(menuRows).replace(/<\//g, '<\\/');
     res.render('web-ide', {
       project: req.project,
       filesJson,
       cardCode: req.query.card || null,
       readonly: false,
-      menuPublicId: req.project.menu_public_id,
+      menuPublicId: menuProject ? menuProject.menu_public_id : null,
       menuJson,
-      canEditMenu: !!req.project.menu_public_id,
+      canEditMenu: !!menuProject,
     });
   } catch (err) {
     next(err);
@@ -320,9 +354,14 @@ router.get('/:id', requireAuth, requireProjectOwner, async (req, res, next) => {
 
 // PUT /projects/:id/menu — replace the whole menu grid in one transaction.
 // Owner-only (students can't save to another student's grid); the teacher's
-// read-only grid view uses the GET routes above instead.
+// read-only grid view uses the GET routes above instead. Saving from a D
+// card's "Try it" project writes to the owner's restaurant menu.
 router.put('/:id/menu', requireAuth, requireProjectOwner, async (req, res, next) => {
-  if (!req.project.menu_public_id) return res.status(404).json({ error: 'This project has no menu data.' });
+  let menuProject;
+  try {
+    menuProject = await menuProjectFor(req.project);
+  } catch (err) { return next(err); }
+  if (!menuProject) return res.status(404).json({ error: 'This project has no menu data.' });
 
   const result = validateMenuRows(req.body.rows);
   if (!result.ok) {
@@ -332,12 +371,12 @@ router.put('/:id/menu', requireAuth, requireProjectOwner, async (req, res, next)
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('DELETE FROM menu_items WHERE project_id = $1', [req.project.id]);
+    await client.query('DELETE FROM menu_items WHERE project_id = $1', [menuProject.id]);
     for (const row of result.rows) {
       await client.query(
         `INSERT INTO menu_items (project_id, position, name, price, category, description, dietary)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [req.project.id, row.position, row.name, row.price, row.category, row.description, row.dietary]
+        [menuProject.id, row.position, row.name, row.price, row.category, row.description, row.dietary]
       );
     }
     await client.query('COMMIT');
