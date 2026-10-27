@@ -53,6 +53,10 @@
     .value-entry-row input.value-key { flex: 0 0 90px; }
     .value-editor .add-btn { margin: 0; padding: 0.2rem 0.5rem; font-size: 0.75rem; }
     .value-item-row .remove-btn, .value-entry-row .remove-btn { font-size: 0.72rem; }
+    .move-btn { background: none; border: 1px solid #ccc; border-radius: 3px; color: #555; cursor: pointer; font-size: 0.65rem; line-height: 1; padding: 0.2rem 0.3rem; }
+    .move-btn:hover { background: #eee; }
+    .value-item-row:first-child .move-up, .value-entry-row:first-child .move-up,
+    .value-item-row:last-child .move-down, .value-entry-row:last-child .move-down { visibility: hidden; }
     .btn { display: inline-block; padding: 0.5rem 1.2rem; border-radius: 4px; font-size: 0.9rem; cursor: pointer; border: none; }
     .btn-primary { background: #2980b9; color: #fff; }
     pre.docstring { background: #1e1e1e; color: #d4d4d4; padding: 1rem 1.25rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; margin-bottom: 1rem; }
@@ -163,10 +167,21 @@
     // deep (a list/dict of plain values, not nested lists-of-lists): that
     // covers checking the state of a returned list or dict without asking
     // a student to nest structures inside a text box.
+    // A stored string that would read back as some other type (the text
+    // "3" or "true") is shown in quotes, so re-saving keeps it a string.
     function scalarToText(v) {
-      if (v === null || v === undefined) return '';
+      if (v === null || v === undefined || v === '') return '';
       if (typeof v === 'boolean') return v ? 'true' : 'false';
+      if (typeof v === 'string' && coerceValueClient(v) !== v) return JSON.stringify(v);
       return String(v);
+    }
+
+    // A dict is stored as ordered [key, value] pairs under "__dict__", so
+    // integer keys stay integers and entries stay in the order typed (see
+    // DICT_TAG in lib/specRunner.js). Plain objects are older saves.
+    function isTaggedDict(v) {
+      return !!v && typeof v === 'object' && !Array.isArray(v)
+        && Object.keys(v).length === 1 && Array.isArray(v.__dict__);
     }
 
     // Client-side mirror of coerceValue() in routes/specmode.js — used only
@@ -176,8 +191,9 @@
     function coerceValueClient(raw) {
       const s = String(raw ?? '').trim();
       if (s === '') return null;
-      if (s === 'true') return true;
-      if (s === 'false') return false;
+      if (s === 'True' || s === 'true') return true;
+      if (s === 'False' || s === 'false') return false;
+      if (s === 'None' || s === 'null') return null;
       if (/^-?\d+$/.test(s)) return parseInt(s, 10);
       if (/^-?\d+\.\d+$/.test(s)) return parseFloat(s);
       if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
@@ -217,6 +233,18 @@
       addEntryBtn.addEventListener('click', () => addDictEntry('', ''));
       dictBox.appendChild(addEntryBtn);
 
+      // Up/down arrows for a list item or dict entry — both are ordered, and
+      // a reference solution can depend on that order.
+      function moveButtons(row) {
+        const up = document.createElement('button');
+        up.type = 'button'; up.className = 'move-btn move-up'; up.textContent = '▲'; up.title = 'Move up';
+        up.addEventListener('click', () => { if (row.previousElementSibling) row.after(row.previousElementSibling); });
+        const down = document.createElement('button');
+        down.type = 'button'; down.className = 'move-btn move-down'; down.textContent = '▼'; down.title = 'Move down';
+        down.addEventListener('click', () => { if (row.nextElementSibling) row.before(row.nextElementSibling); });
+        return [up, down];
+      }
+
       function addListItem(v) {
         const row = document.createElement('div');
         row.className = 'value-item-row';
@@ -225,7 +253,7 @@
         const del = document.createElement('button');
         del.type = 'button'; del.className = 'remove-btn'; del.textContent = 'Remove';
         del.addEventListener('click', () => row.remove());
-        row.append(input, del);
+        row.append(input, ...moveButtons(row), del);
         listItems.appendChild(row);
       }
 
@@ -233,13 +261,13 @@
         const row = document.createElement('div');
         row.className = 'value-entry-row';
         const keyInput = document.createElement('input');
-        keyInput.type = 'text'; keyInput.className = 'value-key'; keyInput.value = k ?? ''; keyInput.placeholder = 'key';
+        keyInput.type = 'text'; keyInput.className = 'value-key'; keyInput.value = scalarToText(k); keyInput.placeholder = 'key';
         const valInput = document.createElement('input');
         valInput.type = 'text'; valInput.value = scalarToText(v); valInput.placeholder = 'e.g. 3 or "red" or true';
         const del = document.createElement('button');
         del.type = 'button'; del.className = 'remove-btn'; del.textContent = 'Remove';
         del.addEventListener('click', () => row.remove());
-        row.append(keyInput, valInput, del);
+        row.append(keyInput, valInput, ...moveButtons(row), del);
         dictEntries.appendChild(row);
       }
 
@@ -259,8 +287,13 @@
         if (!initialValue.length) addListItem('');
         setKind('list');
       } else if (initialValue && typeof initialValue === 'object') {
-        Object.entries(initialValue).forEach(([k, v]) => addDictEntry(k, v));
-        if (!Object.keys(initialValue).length) addDictEntry('', '');
+        // An older save kept each key as the raw text typed, so read it
+        // back the way it was meant: 3 becomes an int key again.
+        const entries = isTaggedDict(initialValue)
+          ? initialValue.__dict__
+          : Object.entries(initialValue).map(([k, v]) => [coerceValueClient(k), v]);
+        entries.forEach(([k, v]) => addDictEntry(k, v));
+        if (!entries.length) addDictEntry('', '');
         setKind('dict');
       } else {
         realInput.value = scalarToText(initialValue);
@@ -280,13 +313,13 @@
           const items = [...listItems.querySelectorAll('input')].map(i => coerceValueClient(i.value));
           realInput.value = JSON.stringify(items);
         } else if (kindSelect.value === 'dict') {
-          const obj = {};
+          // Keys get the same typing as values: 3 is an int, "3" a string.
+          const pairs = [];
           dictEntries.querySelectorAll('.value-entry-row').forEach(row => {
             const [keyInput, valInput] = row.querySelectorAll('input');
-            const key = keyInput.value.trim();
-            if (key) obj[key] = coerceValueClient(valInput.value);
+            if (keyInput.value.trim()) pairs.push([coerceValueClient(keyInput.value), coerceValueClient(valInput.value)]);
           });
-          realInput.value = JSON.stringify(obj);
+          realInput.value = JSON.stringify({ __dict__: pairs });
         }
       };
 

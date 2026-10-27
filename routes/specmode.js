@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { requireAuth, requireTeacher } = require('../middleware/auth');
-const { checkTestCase, DEFAULT_TIMEOUT_MS } = require('../lib/specRunner');
+const {
+  checkTestCase, formatArgs, formatPyLiteral, isTaggedDict, DICT_TAG, DEFAULT_TIMEOUT_MS,
+} = require('../lib/specRunner');
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -60,24 +62,26 @@ function coerceValue(raw) {
     return s.slice(1, -1);
   }
   if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
-    try { return JSON.parse(s); } catch { /* maybe Python syntax — try that next */ }
-    try { return JSON.parse(pyLiteralToJson(s)); } catch { /* not a literal — fall through as a bare string */ }
+    try { return toStoredValue(JSON.parse(s)); } catch { /* maybe Python syntax — try that next */ }
+    try { return toStoredValue(JSON.parse(pyLiteralToJson(s))); } catch { /* not a literal — fall through as a bare string */ }
   }
   return s;
 }
 
-// Recurses into lists/dicts so nested booleans and None come out spelled
-// the Python way (JSON.stringify alone would leave true/false/null, which
-// isn't valid Python) — the docstring this feeds is pasted as real code.
-function formatPyLiteral(v) {
-  if (v === null || v === undefined) return 'None';
-  if (typeof v === 'boolean') return v ? 'True' : 'False';
-  if (typeof v === 'number') return String(v);
-  if (Array.isArray(v)) return '[' + v.map(formatPyLiteral).join(', ') + ']';
-  if (typeof v === 'object') {
-    return '{' + Object.entries(v).map(([k, val]) => `${JSON.stringify(k)}: ${formatPyLiteral(val)}`).join(', ') + '}';
+// Every dict is stored as ordered [key, value] pairs (see DICT_TAG in
+// lib/specRunner.js) so integer keys and entry order survive JSONB. The
+// value editor already sends that shape; a dict typed as JSON text into a
+// plain Value box arrives as an ordinary object and is converted here.
+function toStoredValue(v) {
+  if (Array.isArray(v)) return v.map(toStoredValue);
+  if (v && typeof v === 'object') {
+    if (isTaggedDict(v)) {
+      const pairs = v[DICT_TAG].filter(p => Array.isArray(p) && p.length === 2);
+      return { [DICT_TAG]: pairs.map(([k, val]) => [toStoredValue(k), toStoredValue(val)]) };
+    }
+    return { [DICT_TAG]: Object.entries(v).map(([k, val]) => [k, toStoredValue(val)]) };
   }
-  return JSON.stringify(v); // plain string
+  return v;
 }
 
 // Read-only doctest-style docstring shown to the implementer — generated
@@ -369,6 +373,8 @@ router.get('/problems/:id/review', requireTeacher, async (req, res, next) => {
       readyCount,
       pairings: pairings.rows,
       students,
+      formatArgs,
+      formatPyLiteral,
     });
   } catch (err) { next(err); }
 });

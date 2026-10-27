@@ -79,7 +79,7 @@
                   <details>
                     <summary>view</summary>
                     <% (sp.auto_check_details || []).forEach(d => { %>
-                      <div class="case-line"><%= JSON.stringify(d.inputs) %> &#8594; <%= d.expect_type === 'raises' ? 'error' : JSON.stringify(d.expected_value) %></div>
+                      <div class="case-line"><%= formatArgs(d.inputs) %> &#8594; <%= d.expect_type === 'raises' ? 'error' : formatPyLiteral(d.expected_value) %></div>
                     <% }) %>
                   </details>
                 </td>
@@ -201,7 +201,7 @@
                   <% if (r) { %>
                     <p class="muted"><%= r.passed %>/<%= r.total %> examples passed<% if (im.submitted_at) { %> · submitted <%= new Date(im.submitted_at).toLocaleString() %><% } %></p>
                     <% (r.details || []).filter(d => !d.passed).forEach(d => { %>
-                      <div class="fail-line">&#10007; <%= JSON.stringify(d.inputs) %> &#8594; expected <%= d.expect_type === 'raises' ? 'an error' : JSON.stringify(d.expected_value) %><%= d.message ? ' — ' + d.message : '' %></div>
+                      <div class="fail-line">&#10007; <%= formatArgs(d.inputs) %> &#8594; expected <%= d.expect_type === 'raises' ? 'an error' : formatPyLiteral(d.expected_value) %><%= d.message ? ' — ' + d.message : '' %></div>
                     <% }) %>
                   <% } %>
                 <% } %>
